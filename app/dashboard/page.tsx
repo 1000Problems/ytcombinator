@@ -1,7 +1,8 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 
-// -- Types -----------------------------------------------------------------------
+// ---- Types ------------------------------------------------------------------------------------------------------------------------
 
 interface Keyword {
   id: number;
@@ -14,25 +15,7 @@ interface Keyword {
   results_count: number | null;
   your_rank: number | null;
   rank_7d_ago: number | null;
-}
-
-interface ScoredKeyword {
-  id: number;
-  keyword: string;
-  category: string | null;
-  is_targeted: boolean;
-  your_rank: number | null;
-  rank_7d_ago: number | null;
-  avg_views: number | null;
-  unique_channels: number | null;
-  total_results: number | null;
-  score: number;
-  rank_score: number;
-  demand_score: number;
-  competition_score: number;
-  momentum_score: number;
-  freshness_score: number;
-  signal: string;
+  top5_views_sum: number | null;
 }
 
 interface Ranking {
@@ -56,9 +39,9 @@ interface LogEntry {
 }
 
 type FilterMode = "all" | "targeted" | "active" | "inactive" | "pending";
-type ViewMode = "portfolio" | "top";
+type SortMode = "latest" | "views";
 
-// -- Helpers ---------------------------------------------------------------------
+// ---- Helpers --------------------------------------------------------------------------------------------------------------------
 
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return "Never";
@@ -81,32 +64,16 @@ function staleBadge(lastQueried: string | null): "stale" | "pending" | null {
 function rankDelta(current: number | null, weekAgo: number | null): React.ReactNode {
   if (current === null) return <span className="text-gray-500">--</span>;
   if (weekAgo === null) {
-    return (
-      <span className="text-gray-400">
-        {current} <span className="text-blue-400 text-xs">(new)</span>
-      </span>
-    );
+    return <span className="text-gray-400">{current} <span className="text-blue-400 text-xs">(new)</span></span>;
   }
   const diff = weekAgo - current; // positive = improved
   if (diff > 0) {
-    return (
-      <span className="text-gray-300">
-        {current} <span className="text-green-500">^{diff}</span>
-      </span>
-    );
+    return <span className="text-gray-300">{current} <span className="text-green-500">^{diff}</span></span>;
   }
   if (diff < 0) {
-    return (
-      <span className="text-gray-300">
-        {current} <span className="text-red-400">v{Math.abs(diff)}</span>
-      </span>
-    );
+    return <span className="text-gray-300">{current} <span className="text-red-400">v{Math.abs(diff)}</span></span>;
   }
-  return (
-    <span className="text-gray-300">
-      {current} <span className="text-gray-500">--</span>
-    </span>
-  );
+  return <span className="text-gray-300">{current} <span className="text-gray-500">--</span></span>;
 }
 
 function formatNumber(n: number | null): string {
@@ -116,7 +83,7 @@ function formatNumber(n: number | null): string {
   return String(n);
 }
 
-// -- Shared Components -----------------------------------------------------------
+// ---- Components --------------------------------------------------------------------------------------------------------------
 
 function QuotaGauge({ logs }: { logs: LogEntry[] }) {
   const todayLog = logs.find((l) => {
@@ -133,8 +100,7 @@ function QuotaGauge({ logs }: { logs: LogEntry[] }) {
           className="h-full rounded-full transition-all"
           style={{
             width: `${Math.min((used / 10_000) * 100, 100)}%`,
-            backgroundColor:
-              used > 8_000 ? "#f97316" : used > 5_000 ? "#eab308" : "#22c55e",
+            backgroundColor: used > 8_000 ? "#f97316" : used > 5_000 ? "#eab308" : "#22c55e",
           }}
         />
       </div>
@@ -183,11 +149,7 @@ function KeywordPreview({ keywordId }: { keywordId: number }) {
     return <div className="py-3 px-6 text-red-400 text-sm">Failed to load results.</div>;
   }
   if (rankings.length === 0) {
-    return (
-      <div className="py-3 px-6 text-gray-500 text-sm">
-        No results yet. This keyword hasn&apos;t been collected.
-      </div>
-    );
+    return <div className="py-3 px-6 text-gray-500 text-sm">No results yet. This keyword hasn&apos;t been collected.</div>;
   }
 
   return (
@@ -215,12 +177,8 @@ function KeywordPreview({ keywordId }: { keywordId: number }) {
                   {r.video_title || r.video_id}
                 </a>
               </td>
-              <td className="py-1 text-gray-400 truncate max-w-[120px]">
-                {r.channel_name || "--"}
-              </td>
-              <td className="py-1 text-right tabular-nums">
-                {formatNumber(r.view_count)}
-              </td>
+              <td className="py-1 text-gray-400 truncate max-w-[120px]">{r.channel_name || "--"}</td>
+              <td className="py-1 text-right tabular-nums">{formatNumber(r.view_count)}</td>
             </tr>
           ))}
         </tbody>
@@ -239,8 +197,10 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword.trim()) return;
+
     setSubmitting(true);
     setError(null);
+
     try {
       const res = await fetch("/api/keywords", {
         method: "POST",
@@ -251,6 +211,7 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
           is_targeted: isTargeted,
         }),
       });
+
       if (res.status === 409) {
         setError("Keyword already exists");
         return;
@@ -259,6 +220,7 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
         setError("Failed to add keyword");
         return;
       }
+
       setKeyword("");
       setCategory("");
       setIsTargeted(false);
@@ -338,9 +300,7 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
             <tr
               key={log.id}
               className="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
-              onClick={() =>
-                setExpandedId(expandedId === log.id ? null : log.id)
-              }
+              onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
             >
               <td className="py-2 text-gray-300">
                 {new Date(log.run_at).toLocaleString()}
@@ -359,9 +319,104 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
                 )}
               </td>
               <td className="py-2 text-right tabular-nums text-gray-400">
-                {log.duration_ms
-                  ? `${(log.duration_ms / 1000).toFixed(1)}s`
-                  : "--"}
+                {log.duration_ms ? `${(log.duration_ms / 1000).toFixed(1)}s` : "--"}
+              </td>
+            </tr>
+            {expandedId === log.id && log.errors && log.errors.length > 0 && (
+              <tr key={`${log.id}-errors`}>
+                <td colSpan={5} className="py-2 px-4 bg-gray-900/50">
+                  <ul className="text-xs teting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex items-center gap-3 py-3">
+      <input
+        type="text"
+        value={keyword}
+        onChange={(e) => setKeyword(e.target.value)}
+        placeholder="Add keyword..."
+        className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-64"
+      />
+      <input
+        type="text"
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+        placeholder="Category"
+        className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-32"
+      />
+      <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={isTargeted}
+          onChange={(e) => setIsTargeted(e.target.checked)}
+          className="rounded border-gray-600"
+        />
+        Targeted
+      </label>
+      <button
+        type="submit"
+        disabled={submitting || !keyword.trim()}
+        className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+      >
+        {submitting ? "Adding..." : "Add"}
+      </button>
+      {error && <span className="text-red-400 text-sm">{error}</span>}
+      {keyword.trim() && (
+        <span className="text-gray-500 text-xs">+105 units/day</span>
+      )}
+    </form>
+  );
+}
+
+function CollectionLog({ logs }: { logs: LogEntry[] }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  if (logs.length === 0) {
+    return (
+      <p className="text-gray-500 text-sm py-4">
+        No collection runs yet. Collector starts at 02:00 UTC.
+      </p>
+    );
+  }
+
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-gray-500 text-xs border-b border-gray-800">
+          <th className="text-left py-2">Timestamp</th>
+          <th className="text-right py-2">Keywords</th>
+          <th className="text-right py-2">Quota</th>
+          <th className="text-right py-2">Errors</th>
+          <th className="text-right py-2">Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        {logs.map((log) => (
+          <>
+            <tr
+              key={log.id}
+              className="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
+              onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+            >
+              <td className="py-2 text-gray-300">
+                {new Date(log.run_at).toLocaleString()}
+              </td>
+              <td className="py-2 text-right tabular-nums text-gray-300">
+                {log.keywords_queried}
+              </td>
+              <td className="py-2 text-right tabular-nums text-gray-300">
+                {log.quota_used.toLocaleString()}
+              </td>
+              <td className="py-2 text-right">
+                {log.errors && log.errors.length > 0 ? (
+                  <span className="text-red-400">{log.errors.length}</span>
+                ) : (
+                  <span className="text-gray-500">0</span>
+                )}
+              </td>
+              <td className="py-2 text-right tabular-nums text-gray-400">
+                {log.duration_ms ? `${(log.duration_ms / 1000).toFixed(1)}s` : "--"}
               </td>
             </tr>
             {expandedId === log.id && log.errors && log.errors.length > 0 && (
@@ -369,7 +424,7 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
                 <td colSpan={5} className="py-2 px-4 bg-gray-900/50">
                   <ul className="text-xs text-red-400 space-y-1">
                     {log.errors.map((err, i) => (
-                      <li key={i}>&bull; {err}</li>
+                      <li key={i}>* {err}</li>
                     ))}
                   </ul>
                 </td>
@@ -382,194 +437,7 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
   );
 }
 
-// -- Score Bar (visual breakdown) ------------------------------------------------
-
-function ScoreBar({ scored }: { scored: ScoredKeyword }) {
-  const segments = [
-    { key: "rank", value: scored.rank_score, max: 30, color: "#3b82f6", label: "Rank" },
-    { key: "demand", value: scored.demand_score, max: 25, color: "#22c55e", label: "Demand" },
-    { key: "competition", value: scored.competition_score, max: 20, color: "#a855f7", label: "Competition" },
-    { key: "momentum", value: scored.momentum_score, max: 15, color: "#f97316", label: "Momentum" },
-    { key: "freshness", value: scored.freshness_score, max: 10, color: "#06b6d4", label: "Freshness" },
-  ];
-
-  return (
-    <div className="flex items-center gap-1">
-      {segments.map((seg) => (
-        <div
-          key={seg.key}
-          className="h-2 rounded-sm"
-          style={{
-            width: `${(seg.value / seg.max) * 40}px`,
-            backgroundColor: seg.value > 0 ? seg.color : "transparent",
-            minWidth: seg.value > 0 ? "3px" : "0px",
-            opacity: seg.value > 0 ? 0.8 : 0.15,
-          }}
-          title={`${seg.label}: ${seg.value}/${seg.max}`}
-        />
-      ))}
-    </div>
-  );
-}
-
-// -- Top Keywords View -----------------------------------------------------------
-
-function TopKeywordsView() {
-  const [keywords, setKeywords] = useState<ScoredKeyword[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch("/api/keywords/top")
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load");
-        return r.json();
-      })
-      .then((data) => {
-        setKeywords(data.keywords);
-        setError(null);
-      })
-      .catch(() => setError("Failed to load top keywords"))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-12 bg-gray-800/30 rounded-lg animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-        <p className="text-red-400 text-sm">{error}</p>
-      </div>
-    );
-  }
-
-  if (keywords.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-gray-500 mb-2">No scored keywords yet.</p>
-        <p className="text-gray-600 text-sm">
-          Keywords need at least one collection run before they can be scored.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border border-gray-800/50 rounded-lg overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
-            <th className="text-left py-2.5 px-4 w-8">#</th>
-            <th className="text-left py-2.5 px-3">Keyword</th>
-            <th className="text-right py-2.5 px-3">Score</th>
-            <th className="text-left py-2.5 px-3">Breakdown</th>
-            <th className="text-right py-2.5 px-3">Your Rank</th>
-            <th className="text-right py-2.5 px-3">Avg Views</th>
-            <th className="text-left py-2.5 px-3">Signal</th>
-          </tr>
-        </thead>
-        <tbody>
-          {keywords.map((kw, idx) => {
-            const isExpanded = expandedId === kw.id;
-            return (
-              <>
-                <tr
-                  key={kw.id}
-                  className={`border-b border-gray-800/30 hover:bg-gray-800/20 cursor-pointer transition-colors ${
-                    isExpanded ? "bg-gray-800/20" : ""
-                  }`}
-                  onClick={() => setExpandedId(isExpanded ? null : kw.id)}
-                >
-                  <td className="py-2.5 px-4 text-gray-600 tabular-nums">
-                    {idx + 1}
-                  </td>
-                  <td className="py-2.5 px-3 font-medium text-gray-200">
-                    {kw.keyword}
-                    {kw.is_targeted && (
-                      <span className="ml-2 text-xs text-red-400">&#9679;</span>
-                    )}
-                    {kw.category && (
-                      <span className="ml-2 text-xs text-gray-600">
-                        {kw.category}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2.5 px-3 text-right">
-                    <span
-                      className={`tabular-nums font-medium ${
-                        kw.score >= 70
-                          ? "text-green-400"
-                          : kw.score >= 45
-                          ? "text-yellow-400"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {kw.score}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <ScoreBar scored={kw} />
-                  </td>
-                  <td className="py-2.5 px-3 text-right">
-                    {rankDelta(kw.your_rank, kw.rank_7d_ago)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right tabular-nums text-gray-400">
-                    {formatNumber(kw.avg_views)}
-                  </td>
-                  <td className="py-2.5 px-3 text-gray-500 text-xs max-w-[200px] truncate">
-                    {kw.signal}
-                  </td>
-                </tr>
-                {isExpanded && (
-                  <tr key={`${kw.id}-preview`}>
-                    <td
-                      colSpan={7}
-                      className="bg-gray-900/30 border-b border-gray-800/30"
-                    >
-                      <KeywordPreview keywordId={kw.id} />
-                    </td>
-                  </tr>
-                )}
-              </>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* Legend */}
-      <div className="px-4 py-3 border-t border-gray-800/30 flex items-center gap-4 text-xs text-gray-600">
-        <span>Score breakdown:</span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm bg-blue-500 inline-block" /> Rank
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm bg-green-500 inline-block" /> Demand
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm bg-purple-500 inline-block" /> Competition
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm bg-orange-500 inline-block" /> Momentum
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm bg-cyan-500 inline-block" /> Freshness
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// -- Main Dashboard --------------------------------------------------------------
+// ---- Main Dashboard ------------------------------------------------------------------------------------------------------
 
 export default function DashboardPage() {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
@@ -577,8 +445,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterMode>("all");
+  const [sort, setSort] = useState<SortMode>("latest");
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [view, setView] = useState<ViewMode>("portfolio");
 
   const fetchData = useCallback(async () => {
     try {
@@ -587,13 +455,16 @@ export default function DashboardPage() {
         fetch(`/api/keywords${filterParam}`),
         fetch("/api/collection-log?limit=5"),
       ]);
+
       if (!kwRes.ok || !logRes.ok) throw new Error("Failed to load data");
+
       const kwData = await kwRes.json();
       const logData = await logRes.json();
+
       setKeywords(kwData.keywords);
       setLogs(logData.logs);
       setError(null);
-    } catch {
+    } catch (err) {
       setError("Failed to load dashboard data");
     } finally {
       setLoading(false);
@@ -603,6 +474,16 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const sortedKeywords = [...keywords].sort((a, b) => {
+    if (sort === "views") {
+      return (b.top5_views_sum ?? 0) - (a.top5_views_sum ?? 0);
+    }
+    // "latest" = most recently queried first; never-queried at the end
+    const aTime = a.last_queried ? new Date(a.last_queried).getTime() : 0;
+    const bTime = b.last_queried ? new Date(b.last_queried).getTime() : 0;
+    return bTime - aTime;
+  });
 
   const filterButtons: { label: string; value: FilterMode }[] = [
     { label: "All", value: "all" },
@@ -623,220 +504,184 @@ export default function DashboardPage() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-8 py-6">
-        {/* View tabs */}
-        <div className="flex items-center gap-1 mb-6 border-b border-gray-800/50 pb-3">
-          <button
-            onClick={() => setView("portfolio")}
-            className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${
-              view === "portfolio"
-                ? "bg-gray-800 text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            Portfolio
-          </button>
-          <button
-            onClick={() => setView("top")}
-            className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${
-              view === "top"
-                ? "bg-gray-800 text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            Top
-          </button>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-medium text-gray-200">Keyword Portfolio</h1>
+          <span className="text-sm text-gray-500">{keywords.length} keywords</span>
         </div>
 
-        {/* -- Top View -------------------------------------------------- */}
-        {view === "top" && (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-xl font-medium text-gray-200">
-                  Top Keywords
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  Ranked by monetization potential: rank position, search demand, competition, momentum, and content freshness.
-                </p>
-              </div>
-            </div>
-            <TopKeywordsView />
-          </>
+        {/* Filters + Sort */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex gap-1">
+            {filterButtons.map((btn) => (
+              <button
+                key={btn.value}
+                onClick={() => setFilter(btn.value)}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  filter === btn.value
+                    ? "bg-gray-800 text-white"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="mr-1">Sort:</span>
+            <button
+              onClick={() => setSort("latest")}
+              className={`px-2 py-1 rounded transition-colors ${
+                sort === "latest" ? "bg-gray-800 text-white" : "hover:text-gray-300"
+              }`}
+            >
+              Latest
+            </button>
+            <button
+              onClick={() => setSort("views")}
+              className={`px-2 py-1 rounded transition-colors ${
+                sort === "views" ? "bg-gray-800 text-white" : "hover:text-gray-300"
+              }`}
+            >
+              Top Views
+            </button>
+          </div>
+        </div>
+
+        {/* Error state */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+            <p className="text-red-400 text-sm">{error}</p>
+            <button
+              onClick={fetchData}
+              className="text-red-400 text-sm underline mt-1"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
-        {/* -- Portfolio View ------------------------------------------- */}
-        {view === "portfolio" && (
+        {/* Loading state */}
+        {loading && (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-10 bg-gray-800/30 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {/* Keyword table */}
+        {!loading && !error && (
           <>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-xl font-medium text-gray-200">
-                Keyword Portfolio
-              </h1>
-              <span className="text-sm text-gray-500">
-                {keywords.length} keywords
-              </span>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-1 mb-4">
-              {filterButtons.map((btn) => (
-                <button
-                  key={btn.value}
-                  onClick={() => setFilter(btn.value)}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-                    filter === btn.value
-                      ? "bg-gray-800 text-white"
-                      : "text-gray-500 hover:text-gray-300"
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Error state */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
-                <p className="text-red-400 text-sm">{error}</p>
-                <button
-                  onClick={fetchData}
-                  className="text-red-400 text-sm underline mt-1"
-                >
-                  Retry
-                </button>
+            {keywords.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-gray-500 mb-2">No keywords yet.</p>
+                <p className="text-gray-600 text-sm">
+                  Seed your keyword list below, or run a bulk import via SQL.
+                </p>
               </div>
-            )}
-
-            {/* Loading state */}
-            {loading && (
-              <div className="space-y-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-10 bg-gray-800/30 rounded-lg animate-pulse"
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Keyword table */}
-            {!loading && !error && (
-              <>
-                {keywords.length === 0 ? (
-                  <div className="text-center py-16">
-                    <p className="text-gray-500 mb-2">No keywords yet.</p>
-                    <p className="text-gray-600 text-sm">
-                      Seed your keyword list below, or run a bulk import via SQL.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-gray-800/50 rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
-                          <th className="text-left py-2.5 px-4">Keyword</th>
-                          <th className="text-left py-2.5 px-3">Category</th>
-                          <th className="text-center py-2.5 px-3">Status</th>
-                          <th className="text-right py-2.5 px-3">Your Rank</th>
-                          <th className="text-right py-2.5 px-3">Results</th>
-                          <th className="text-right py-2.5 px-3">
-                            Last Collected
-                          </th>
-                          <th className="text-center py-2.5 px-3">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {keywords.map((kw) => {
-                          const badge = staleBadge(kw.last_queried);
-                          const isExpanded = expandedId === kw.id;
-                          return (
-                            <>
-                              <tr
-                                key={kw.id}
-                                className={`border-b border-gray-800/30 hover:bg-gray-800/20 cursor-pointer transition-colors ${
-                                  isExpanded ? "bg-gray-800/20" : ""
-                                }`}
-                                onClick={() =>
-                                  setExpandedId(isExpanded ? null : kw.id)
-                                }
-                              >
-                                <td className="py-2 px-4 font-medium text-gray-200">
-                                  {kw.keyword}
-                                  {kw.is_targeted && (
-                                    <span className="ml-2 text-xs text-red-400">
-                                      &#9679;
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="py-2 px-3 text-gray-500">
-                                  {kw.category || "--"}
-                                </td>
-                                <td className="py-2 px-3 text-center">
-                                  <StatusBadge status={badge} />
-                                  {!badge && kw.is_active && (
-                                    <span className="text-xs text-green-500">
-                                      active
-                                    </span>
-                                  )}
-                                  {!kw.is_active && (
-                                    <span className="text-xs text-gray-600">
-                                      paused
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="py-2 px-3 text-right">
-                                  {rankDelta(kw.your_rank, kw.rank_7d_ago)}
-                                </td>
-                                <td className="py-2 px-3 text-right tabular-nums text-gray-400">
-                                  {kw.results_count ?? "--"}
-                                </td>
-                                <td className="py-2 px-3 text-right text-gray-500">
-                                  {timeAgo(kw.last_queried)}
-                                </td>
-                                <td className="py-2 px-3 text-center">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleActive(kw);
-                                    }}
-                                    className="text-xs text-gray-500 hover:text-gray-300 px-2 py-0.5 rounded transition-colors"
-                                  >
-                                    {kw.is_active ? "Pause" : "Resume"}
-                                  </button>
-                                </td>
-                              </tr>
-                              {isExpanded && (
-                                <tr key={`${kw.id}-preview`}>
-                                  <td
-                                    colSpan={7}
-                                    className="bg-gray-900/30 border-b border-gray-800/30"
-                                  >
-                                    <KeywordPreview keywordId={kw.id} />
-                                  </td>
-                                </tr>
+            ) : (
+              <div className="border border-gray-800/50 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
+                      <th className="text-left py-2.5 px-4">Keyword</th>
+                      <th className="text-left py-2.5 px-3">Category</th>
+                      <th className="text-center py-2.5 px-3">Status</th>
+                      <th className="text-right py-2.5 px-3">Your Rank</th>
+                      <th
+                        className={`text-right py-2.5 px-3 cursor-pointer select-none transition-colors ${
+                          sort === "views" ? "text-white" : "hover:text-gray-300"
+                        }`}
+                        onClick={() => setSort(sort === "views" ? "latest" : "views")}
+                      >
+                        Top 5 Views{sort === "views" ? " v" : ""}
+                      </th>
+                      <th className="text-right py-2.5 px-3">Results</th>
+                      <th className="text-right py-2.5 px-3">Last Collected</th>
+                      <th className="text-center py-2.5 px-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedKeywords.map((kw) => {
+                      const badge = staleBadge(kw.last_queried);
+                      const isExpanded = expandedId === kw.id;
+                      return (
+                        <>
+                          <tr
+                            key={kw.id}
+                            className={`border-b border-gray-800/30 hover:bg-gray-800/20 cursor-pointer transition-colors ${
+                              isExpanded ? "bg-gray-800/20" : ""
+                            }`}
+                            onClick={() => setExpandedId(isExpanded ? null : kw.id)}
+                          >
+                            <td className="py-2 px-4 font-medium text-gray-200">
+                              {kw.keyword}
+                              {kw.is_targeted && (
+                                <span className="ml-2 text-xs text-red-400">*</span>
                               )}
-                            </>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* Add keyword form */}
-                <div className="mt-4">
-                  <AddKeywordForm onAdded={fetchData} />
-                </div>
-              </>
+                            </td>
+                            <td className="py-2 px-3 text-gray-500">
+                              {kw.category || "--"}
+                            </td>
+                            <td className="py-2 px-3 text-center">
+                              <StatusBadge status={badge} />
+                              {!badge && kw.is_active && (
+                                <span className="text-xs text-green-500">active</span>
+                              )}
+                              {!kw.is_active && (
+                                <span className="text-xs text-gray-600">paused</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              {rankDelta(kw.your_rank, kw.rank_7d_ago)}
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums text-gray-400">
+                              {formatNumber(kw.top5_views_sum)}
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums text-gray-400">
+                              {kw.results_count ?? "--"}
+                            </td>
+                            <td className="py-2 px-3 text-right text-gray-500">
+                              {timeAgo(kw.last_queried)}
+                            </td>
+                            <td className="py-2 px-3 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleActive(kw);
+                                }}
+                                className="text-xs text-gray-500 hover:text-gray-300 px-2 py-0.5 rounded transition-colors"
+                              >
+                                {kw.is_active ? "Pause" : "Resume"}
+                              </button>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={`${kw.id}-preview`}>
+                              <td colSpan={8} className="bg-gray-900/30 border-b border-gray-800/30">
+                                <KeywordPreview keywordId={kw.id} />
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
+
+            {/* Add keyword form */}
+            <div className="mt-4">
+              <AddKeywordForm onAdded={fetchData} />
+            </div>
           </>
         )}
 
         {/* Collection Log */}
         <div className="mt-12">
-          <h2 className="text-lg font-medium text-gray-300 mb-4">
-            Collection Log
-          </h2>
+          <h2 className="text-lg font-medium text-gray-300 mb-4">Collection Log</h2>
           <div className="border border-gray-800/50 rounded-lg overflow-hidden px-4">
             <CollectionLog logs={logs} />
           </div>
@@ -861,3 +706,4 @@ export default function DashboardPage() {
     }
   }
 }
+
