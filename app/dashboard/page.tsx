@@ -43,7 +43,9 @@ interface LogEntry {
 }
 
 type FilterMode = "all" | "targeted" | "active" | "inactive" | "pending";
-type SortMode = "latest" | "views" | "opportunity";
+type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "results_count" | "last_queried";
+type SortDir = "asc" | "desc";
+interface SortState { key: SortKey; dir: SortDir }
 
 // ---- Helpers --------------------------------------------------------------------------------------------------------------------
 
@@ -412,7 +414,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterMode>("all");
-  const [sort, setSort] = useState<SortMode>("latest");
+  const [sort, setSort] = useState<SortState>({ key: "last_queried", dir: "desc" });
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Load saved locale on mount
@@ -455,16 +457,36 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
+  function toggleSort(key: SortKey) {
+    setSort((prev) =>
+      prev.key === key ? { key, dir: prev.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }
+    );
+  }
+
+  function sortIndicator(key: SortKey): string {
+    if (sort.key !== key) return "";
+    return sort.dir === "desc" ? " ▼" : " ▲";
+  }
+
   const sortedKeywords = [...keywords].sort((a, b) => {
-    if (sort === "views") {
-      return (b.top5_views_sum ?? 0) - (a.top5_views_sum ?? 0);
+    const dir = sort.dir === "desc" ? 1 : -1;
+    const k = sort.key;
+
+    if (k === "keyword") {
+      return dir * (b.keyword.localeCompare(a.keyword));
     }
-    if (sort === "opportunity") {
-      return (b.demand_supply ?? 0) - (a.demand_supply ?? 0);
+    if (k === "category") {
+      return dir * ((b.category ?? "").localeCompare(a.category ?? ""));
     }
-    const aTime = a.last_queried ? new Date(a.last_queried).getTime() : 0;
-    const bTime = b.last_queried ? new Date(b.last_queried).getTime() : 0;
-    return bTime - aTime;
+    if (k === "last_queried") {
+      const aT = a.last_queried ? new Date(a.last_queried).getTime() : 0;
+      const bT = b.last_queried ? new Date(b.last_queried).getTime() : 0;
+      return dir * (bT - aT);
+    }
+    // Numeric columns
+    const aVal = Number(a[k] ?? 0) || 0;
+    const bVal = Number(b[k] ?? 0) || 0;
+    return dir * (bVal - aVal);
   });
 
   const filterButtons: { labelKey: string; value: FilterMode }[] = [
@@ -512,33 +534,7 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <span className="mr-1">{t("sort.label")}</span>
-            <button
-              onClick={() => setSort("latest")}
-              className={`px-2 py-1 rounded transition-colors ${
-                sort === "latest" ? "bg-gray-800 text-white" : "hover:text-gray-300"
-              }`}
-            >
-              {t("sort.latest")}
-            </button>
-            <button
-              onClick={() => setSort("views")}
-              className={`px-2 py-1 rounded transition-colors ${
-                sort === "views" ? "bg-gray-800 text-white" : "hover:text-gray-300"
-              }`}
-            >
-              {t("sort.views")}
-            </button>
-            <button
-              onClick={() => setSort("opportunity")}
-              className={`px-2 py-1 rounded transition-colors ${
-                sort === "opportunity" ? "bg-gray-800 text-white" : "hover:text-gray-300"
-              }`}
-            >
-              {t("sort.opportunity")}
-            </button>
-          </div>
+          <span className="text-xs text-gray-600">{t("sort.label")} {t(`th.${sort.key === "top5_views_sum" ? "top5_views" : sort.key === "demand_supply" ? "demand_supply" : sort.key === "unique_channel_count" ? "unique_channels" : sort.key === "revenue_est" ? "revenue_est" : sort.key === "results_count" ? "results" : sort.key === "last_queried" ? "last_collected" : sort.key}`)}{sortIndicator(sort.key)}</span>
         </div>
 
         {/* Error state */}
@@ -578,23 +574,16 @@ export default function DashboardPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
-                      <th className="text-left py-2.5 px-4">{t("th.keyword")}</th>
-                      <th className="text-left py-2.5 px-3">{t("th.category")}</th>
+                      <th className="text-left py-2.5 px-4 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("keyword")}>{t("th.keyword")}{sortIndicator("keyword")}</th>
+                      <th className="text-left py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("category")}>{t("th.category")}{sortIndicator("category")}</th>
                       <th className="text-center py-2.5 px-3">{t("th.status")}</th>
-                      <th className="text-right py-2.5 px-3">{t("th.your_rank")}</th>
-                      <th
-                        className={`text-right py-2.5 px-3 cursor-pointer select-none transition-colors ${
-                          sort === "views" ? "text-white" : "hover:text-gray-300"
-                        }`}
-                        onClick={() => setSort(sort === "views" ? "latest" : "views")}
-                      >
-                        {t("th.top5_views")}{sort === "views" ? " v" : ""}
-                      </th>
-                      <th className="text-right py-2.5 px-3" title={t("tip.unique_channels")}>{t("th.unique_channels")}</th>
-                      <th className="text-right py-2.5 px-3" title={t("tip.demand_supply")}>{t("th.demand_supply")}</th>
-                      <th className="text-right py-2.5 px-3" title={t("tip.revenue_est")}>{t("th.revenue_est")}</th>
-                      <th className="text-right py-2.5 px-3">{t("th.results")}</th>
-                      <th className="text-right py-2.5 px-3">{t("th.last_collected")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("your_rank")}>{t("th.your_rank")}{sortIndicator("your_rank")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("top5_views_sum")}>{t("th.top5_views")}{sortIndicator("top5_views_sum")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.unique_channels")} onClick={() => toggleSort("unique_channel_count")}>{t("th.unique_channels")}{sortIndicator("unique_channel_count")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.demand_supply")} onClick={() => toggleSort("demand_supply")}>{t("th.demand_supply")}{sortIndicator("demand_supply")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.revenue_est")} onClick={() => toggleSort("revenue_est")}>{t("th.revenue_est")}{sortIndicator("revenue_est")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("results_count")}>{t("th.results")}{sortIndicator("results_count")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("last_queried")}>{t("th.last_collected")}{sortIndicator("last_queried")}</th>
                       <th className="text-center py-2.5 px-3">{t("th.actions")}</th>
                     </tr>
                   </thead>
@@ -689,6 +678,27 @@ export default function DashboardPage() {
           <h2 className="text-lg font-medium text-gray-300 mb-4">{t("log.title")}</h2>
           <div className="border border-gray-800/50 rounded-lg overflow-hidden px-4">
             <CollectionLog logs={logs} t={t} />
+          </div>
+
+          {/* ── Formula Explanations ── */}
+          <div className="bg-[#1a1a2e] border border-white/10 rounded-xl p-6 mt-6">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              {t("formula.title")}
+            </h2>
+            <div className="space-y-5 text-sm text-gray-300 leading-relaxed">
+              <div>
+                <h3 className="text-white font-medium mb-1">{t("formula.channels_title")}</h3>
+                <p>{t("formula.channels_desc")}</p>
+              </div>
+              <div>
+                <h3 className="text-white font-medium mb-1">{t("formula.ds_title")}</h3>
+                <p>{t("formula.ds_desc")}</p>
+              </div>
+              <div>
+                <h3 className="text-white font-medium mb-1">{t("formula.rev_title")}</h3>
+                <p>{t("formula.rev_desc")}</p>
+              </div>
+            </div>
           </div>
         </div>
       </main>

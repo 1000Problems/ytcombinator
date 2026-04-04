@@ -111,6 +111,24 @@ const strings: Record<string, Record<Locale, string>> = {
   "log.errors": { en: "Errors", es: "Errores" },
   "log.duration": { en: "Duration", es: "Duración" },
 
+  // ── Formula explanations ──
+  "formula.title": { en: "How Metrics Are Calculated", es: "Cómo se Calculan las Métricas" },
+  "formula.channels_title": { en: "Channels", es: "Canales" },
+  "formula.channels_desc": {
+    en: "The number of unique YouTube channels appearing in the top 25 search results for this keyword. A lower count means fewer creators are competing for this term, which can signal an easier entry point.",
+    es: "El número de canales únicos de YouTube que aparecen en los 25 primeros resultados de búsqueda para este keyword. Un número bajo significa menos creadores compitiendo por ese término, lo que puede indicar un punto de entrada más fácil.",
+  },
+  "formula.ds_title": { en: "D/S Ratio (Demand / Supply)", es: "Ratio D/O (Demanda / Oferta)" },
+  "formula.ds_desc": {
+    en: "Calculated as the average view count of the top 5 videos divided by the number of unique channels in the top 25. A high ratio (green, ≥50K) indicates strong viewer demand with relatively few suppliers — a prime opportunity. A medium ratio (yellow, ≥10K) is moderately competitive. A low ratio (red, <10K) means the niche is saturated or has low demand.",
+    es: "Se calcula como el promedio de vistas de los 5 videos principales dividido entre el número de canales únicos en el top 25. Un ratio alto (verde, ≥50K) indica alta demanda de espectadores con relativamente pocos competidores — una oportunidad ideal. Un ratio medio (amarillo, ≥10K) es moderadamente competitivo. Un ratio bajo (rojo, <10K) significa que el nicho está saturado o tiene baja demanda.",
+  },
+  "formula.rev_title": { en: "Revenue Estimate ($)", es: "Estimación de Ingresos ($)" },
+  "formula.rev_desc": {
+    en: "Estimated ad revenue potential based on the sum of the top 5 video view counts multiplied by a $5 CPM (cost per thousand impressions), then divided by 1,000. This gives a rough sense of the total ad dollars flowing through the top results for this keyword. Higher values mean more monetization potential.",
+    es: "Potencial estimado de ingresos por publicidad basado en la suma de vistas de los 5 videos principales multiplicada por un CPM de $5 (costo por mil impresiones), dividido entre 1,000. Esto da una idea aproximada del total de dólares publicitarios que fluyen por los resultados principales de este keyword. Valores más altos significan mayor potencial de monetización.",
+  },
+
   // ── Time helpers ──
   "time.never": { en: "Never", es: "Nunca" },
   "time.m_ago": { en: "m ago", es: "m atrás" },
