@@ -82,24 +82,30 @@ function rankDelta(current: number | null, weekAgo: number | null, t: (k: string
   return <span className="text-gray-300">{current} <span className="text-gray-500">--</span></span>;
 }
 
-function formatNumber(n: number | null): string {
+function formatNumber(n: number | string | null): string {
   if (n === null || n === undefined) return "--";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
+  const v = Number(n);
+  if (isNaN(v)) return "--";
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+  return String(v);
 }
 
-function formatCurrency(n: number | null): string {
+function formatCurrency(n: number | string | null): string {
   if (n === null || n === undefined) return "--";
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n.toFixed(0)}`;
+  const v = Number(n);
+  if (isNaN(v)) return "--";
+  if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
+  return `$${v.toFixed(0)}`;
 }
 
 /** Color code the D/S ratio: green = good opportunity, red = saturated */
-function dsColor(ds: number | null): string {
+function dsColor(ds: number | string | null): string {
   if (ds === null) return "text-gray-500";
-  if (ds >= 50_000) return "text-green-400";
-  if (ds >= 10_000) return "text-yellow-400";
+  const v = Number(ds);
+  if (isNaN(v)) return "text-gray-500";
+  if (v >= 50_000) return "text-green-400";
+  if (v >= 10_000) return "text-yellow-400";
   return "text-red-400";
 }
 
