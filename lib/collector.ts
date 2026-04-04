@@ -56,7 +56,7 @@ async function searchVideos(
     maxResults: String(QUOTA.SEARCH_MAX_RESULTS),
     order: "relevance",
     regionCode: "US",
-    relevanceLanguage: "en",
+    relevanceLanguage: "es",
   });
 
   const res = await fetch(`${YOUTUBE_BASE}/search?${params}`);
