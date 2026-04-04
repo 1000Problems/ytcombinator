@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 
-// ââ Types ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Types -----------------------------------------------------------------------
 
 interface Keyword {
   id: number;
@@ -58,7 +58,7 @@ interface LogEntry {
 type FilterMode = "all" | "targeted" | "active" | "inactive" | "pending";
 type ViewMode = "portfolio" | "top";
 
-// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Helpers ---------------------------------------------------------------------
 
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return "Never";
@@ -79,7 +79,7 @@ function staleBadge(lastQueried: string | null): "stale" | "pending" | null {
 }
 
 function rankDelta(current: number | null, weekAgo: number | null): React.ReactNode {
-  if (current === null) return <span className="text-gray-500">â</span>;
+  if (current === null) return <span className="text-gray-500">--</span>;
   if (weekAgo === null) {
     return (
       <span className="text-gray-400">
@@ -91,32 +91,32 @@ function rankDelta(current: number | null, weekAgo: number | null): React.ReactN
   if (diff > 0) {
     return (
       <span className="text-gray-300">
-        {current} <span className="text-green-500">â{diff}</span>
+        {current} <span className="text-green-500">^{diff}</span>
       </span>
     );
   }
   if (diff < 0) {
     return (
       <span className="text-gray-300">
-        {current} <span className="text-red-400">â{Math.abs(diff)}</span>
+        {current} <span className="text-red-400">v{Math.abs(diff)}</span>
       </span>
     );
   }
   return (
     <span className="text-gray-300">
-      {current} <span className="text-gray-500">â</span>
+      {current} <span className="text-gray-500">--</span>
     </span>
   );
 }
 
 function formatNumber(n: number | null): string {
-  if (n === null || n === undefined) return "â";
+  if (n === null || n === undefined) return "--";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
 }
 
-// ââ Shared Components ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Shared Components -----------------------------------------------------------
 
 function QuotaGauge({ logs }: { logs: LogEntry[] }) {
   const todayLog = logs.find((l) => {
@@ -216,7 +216,7 @@ function KeywordPreview({ keywordId }: { keywordId: number }) {
                 </a>
               </td>
               <td className="py-1 text-gray-400 truncate max-w-[120px]">
-                {r.channel_name || "â";
+                {r.channel_name || "--"}
               </td>
               <td className="py-1 text-right tabular-nums">
                 {formatNumber(r.view_count)}
@@ -361,7 +361,7 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
               <td className="py-2 text-right tabular-nums text-gray-400">
                 {log.duration_ms
                   ? `${(log.duration_ms / 1000).toFixed(1)}s`
-                  : "â"}
+                  : "--"}
               </td>
             </tr>
             {expandedId === log.id && log.errors && log.errors.length > 0 && (
@@ -382,7 +382,7 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
   );
 }
 
-// ââ Score Bar (visual breakdown) ââââââââââââââââââââââââââââââââââââ
+// -- Score Bar (visual breakdown) ------------------------------------------------
 
 function ScoreBar({ scored }: { scored: ScoredKeyword }) {
   const segments = [
@@ -412,7 +412,7 @@ function ScoreBar({ scored }: { scored: ScoredKeyword }) {
   );
 }
 
-// ââ Top Keywords View âââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Top Keywords View -----------------------------------------------------------
 
 function TopKeywordsView() {
   const [keywords, setKeywords] = useState<ScoredKeyword[]>([]);
@@ -569,7 +569,7 @@ function TopKeywordsView() {
   );
 }
 
-// ââ Main Dashboard âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Main Dashboard --------------------------------------------------------------
 
 export default function DashboardPage() {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
@@ -647,7 +647,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* ââ Top View ââââââââââââââââââââââââââââââââââââââââââââ */}
+        {/* -- Top View -------------------------------------------------- */}
         {view === "top" && (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -664,7 +664,7 @@ export default function DashboardPage() {
           </>
         )}
 
-        {/* ââ Portfolio View âââââââââââââââââââââââââââââââââââ */}
+        {/* -- Portfolio View ------------------------------------------- */}
         {view === "portfolio" && (
           <>
             {/* Header */}
@@ -769,7 +769,7 @@ export default function DashboardPage() {
                                   )}
                                 </td>
                                 <td className="py-2 px-3 text-gray-500">
-                                  {kw.category || "â"}
+                                  {kw.category || "--"}
                                 </td>
                                 <td className="py-2 px-3 text-center">
                                   <StatusBadge status={badge} />
@@ -788,7 +788,7 @@ export default function DashboardPage() {
                                   {rankDelta(kw.your_rank, kw.rank_7d_ago)}
                                 </td>
                                 <td className="py-2 px-3 text-right tabular-nums text-gray-400">
-                                  {kw.results_count ?? "â"}
+                                  {kw.results_count ?? "--"}
                                 </td>
                                 <td className="py-2 px-3 text-right text-gray-500">
                                   {timeAgo(kw.last_queried)}
@@ -857,7 +857,7 @@ export default function DashboardPage() {
       });
       fetchData();
     } catch {
-      // Silent fail â user will see stale state
+      // Silent fail -- user will see stale state
     }
   }
 }
