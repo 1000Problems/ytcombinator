@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
+import { collectSingleKeyword } from "@/lib/collector";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────
 
 interface KeywordRow {
   id: number;
@@ -19,7 +20,7 @@ interface KeywordWithRank extends KeywordRow {
   rank_7d_ago: number | null;
 }
 
-// ── GET /api/keywords ──────────────────────────────────────────────────────
+// ── GET /api/keywords ────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ── POST /api/keywords ─────────────────────────────────────────────────────
+// ── POST /api/keywords ───────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
@@ -120,7 +121,18 @@ export async function POST(request: NextRequest) {
       [trimmed, category || null, is_targeted ?? false]
     );
 
-    return NextResponse.json(rows[0], { status: 201 });
+    const inserted = rows[0];
+
+    // Fire-and-forget: collect rankings for this keyword immediately.
+    // The response doesn't wait — the dashboard will show data on next refresh.
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (apiKey) {
+      collectSingleKeyword(inserted.id, inserted.keyword, apiKey).catch(() => {
+        // Swallowed — cron will pick it up if this fails
+      });
+    }
+
+    return NextResponse.json(inserted, { status: 201 });
   } catch (err) {
     console.error("POST /api/keywords error:", err);
     return NextResponse.json(
@@ -130,7 +142,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── PATCH /api/keywords (bulk update) ──────────────────────────────────────
+// ── PATCH /api/keywords (bulk update) ────────────────────────────────
 
 export async function PATCH(request: NextRequest) {
   try {
