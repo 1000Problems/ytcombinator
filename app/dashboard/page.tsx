@@ -691,6 +691,7 @@ export default function DashboardPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
+                      <th className="text-center py-2.5 px-2 w-8">★</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.demand_supply")} onClick={() => toggleSort("demand_supply")}>{t("th.demand_supply")}{sortIndicator("demand_supply")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.revenue_est")} onClick={() => toggleSort("revenue_est")}>{t("th.revenue_est")}{sortIndicator("revenue_est")}</th>
                       <th className="text-left py-2.5 px-4 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("keyword")}>{t("th.keyword")}{sortIndicator("keyword")}</th>
@@ -716,6 +717,15 @@ export default function DashboardPage() {
                             }`}
                             onClick={() => setExpandedId(isExpanded ? null : kw.id)}
                           >
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleStar(kw); }}
+                                className={`text-sm transition-colors ${kw.is_targeted ? "text-yellow-400" : "text-gray-700 hover:text-gray-500"}`}
+                                title={kw.is_targeted ? t("action.unstar") : t("action.star")}
+                              >
+                                ★
+                              </button>
+                            </td>
                             <td className={`py-2 px-3 text-right tabular-nums font-semibold ${dsColor(kw.demand_supply)}`}>
                               {formatNumber(kw.demand_supply)}
                             </td>
@@ -724,13 +734,6 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-2 px-4">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleToggleStar(kw); }}
-                                  className={`text-sm transition-colors ${kw.is_targeted ? "text-yellow-400" : "text-gray-700 hover:text-gray-500"}`}
-                                  title={kw.is_targeted ? t("action.unstar") : t("action.star")}
-                                >
-                                  ★
-                                </button>
                                 <span className="font-medium text-gray-200">
                                   {kw.keyword}
                                 </span>
@@ -773,7 +776,7 @@ export default function DashboardPage() {
                           </tr>
                           {isExpanded && (
                             <tr key={`${kw.id}-preview`}>
-                              <td colSpan={10} className="bg-gray-900/30 border-b border-gray-800/30">
+                              <td colSpan={11} className="bg-gray-900/30 border-b border-gray-800/30">
                                 <KeywordPreview keywordId={kw.id} t={t} />
                               </td>
                             </tr>
