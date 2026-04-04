@@ -90,6 +90,12 @@ const strings: Record<string, Record<Locale, string>> = {
   "research.error_network": { en: "Network error", es: "Error de red" },
   "research.quota_hint": { en: "105 quota units", es: "105 unidades de cuota" },
   "research.added": { en: "Added!", es: "¡Agregado!" },
+  "research.waiting": { en: "Calculating metrics...", es: "Calculando métricas..." },
+
+  // ── Collect button ──
+  "collect.button": { en: "Collect All", es: "Recolectar Todo" },
+  "collect.running": { en: "Collecting...", es: "Recolectando..." },
+  "collect.done": { en: "Done!", es: "¡Listo!" },
 
   // ── Legacy form keys (kept for compat) ──
   "form.placeholder_keyword": { en: "Add keyword...", es: "Agregar keyword..." },

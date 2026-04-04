@@ -322,7 +322,34 @@ function ResearchBar({
         }
       }
 
-      // Fallback: use whatever we got from the POST response
+      // Collection completed but metrics not yet computed in the view —
+      // show a brief "calculating" state, then retry once after a beat.
+      setAdded(true);
+      onAdded();
+      setInput("");
+
+      // Retry after a short delay to let the DB view catch up
+      await new Promise((r) => setTimeout(r, 1500));
+      const retryRes = await fetch(`/api/keywords?filter=all`);
+      if (retryRes.ok) {
+        const retryData = await retryRes.json();
+        const retryMatch = (retryData.keywords as Keyword[]).find((k) => k.id === created.id);
+        if (retryMatch && retryMatch.demand_supply !== null) {
+          setPreview({
+            id: retryMatch.id,
+            keyword: retryMatch.keyword,
+            tags: retryMatch.tags ?? [],
+            demand_supply: retryMatch.demand_supply,
+            revenue_est: retryMatch.revenue_est,
+            unique_channel_count: retryMatch.unique_channel_count,
+            top5_views_sum: retryMatch.top5_views_sum,
+          });
+          onAdded(); // refresh table with updated data
+          return;
+        }
+      }
+
+      // Final fallback: show what we have (keyword was added but data may be partial)
       setPreview({
         id: created.id,
         keyword: created.keyword,
@@ -332,9 +359,6 @@ function ResearchBar({
         unique_channel_count: null,
         top5_views_sum: null,
       });
-      setAdded(true);
-      onAdded();
-      setInput("");
     } catch {
       setError(t("research.error_network"));
     } finally {
@@ -486,6 +510,8 @@ export default function DashboardPage() {
   const [sort, setSort] = useState<SortState>({ key: "demand_supply", dir: "desc" });
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [collecting, setCollecting] = useState(false);
+  const [collectResult, setCollectResult] = useState<string | null>(null);
 
   // Load saved locale on mount
   useEffect(() => {
@@ -651,6 +677,18 @@ export default function DashboardPage() {
                 {t(btn.labelKey)}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
+            {collectResult && (
+              <span className="text-xs text-green-400">{collectResult}</span>
+            )}
+            <button
+              onClick={handleCollectAll}
+              disabled={collecting}
+              className="px-3 py-1 text-sm rounded-lg bg-gray-800/60 border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600 disabled:opacity-50 transition-colors"
+            >
+              {collecting ? t("collect.running") : t("collect.button")}
+            </button>
           </div>
         </div>
 
@@ -824,6 +862,28 @@ export default function DashboardPage() {
       </main>
     </div>
   );
+
+  async function handleCollectAll() {
+    if (collecting) return;
+    setCollecting(true);
+    setCollectResult(null);
+    try {
+      const res = await fetch("/api/collect", { method: "POST" });
+      if (!res.ok) throw new Error("collect failed");
+      const data = await res.json();
+      setCollectResult(
+        `${data.keywordsQueried} keywords, ${data.quotaUsed} quota`
+      );
+      fetchData(); // refresh table
+      // Clear result message after a few seconds
+      setTimeout(() => setCollectResult(null), 5000);
+    } catch {
+      setCollectResult("Error");
+      setTimeout(() => setCollectResult(null), 5000);
+    } finally {
+      setCollecting(false);
+    }
+  }
 
   async function handleToggleStar(kw: Keyword) {
     // Optimistic update: toggle locally first for instant feedback
