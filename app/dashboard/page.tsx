@@ -54,7 +54,7 @@ interface LogEntry {
   duration_ms: number | null;
 }
 
-type FilterMode = "all" | "targeted" | "active" | "inactive" | "pending";
+type FilterMode = "all" | "starred" | "pending";
 type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "results_count" | "last_queried";
 type SortDir = "asc" | "desc";
 interface SortState { key: SortKey; dir: SortDir }
@@ -502,7 +502,9 @@ export default function DashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const filterParam = filter === "all" ? "" : `?filter=${filter}`;
+      // Map UI filter names to API filter names
+      const apiFilter = filter === "starred" ? "targeted" : filter;
+      const filterParam = filter === "all" ? "" : `?filter=${apiFilter}`;
       const [kwRes, logRes] = await Promise.all([
         fetch(`/api/keywords${filterParam}`),
         fetch("/api/collection-log?limit=5"),
@@ -572,10 +574,8 @@ export default function DashboardPage() {
 
   const filterButtons: { labelKey: string; value: FilterMode }[] = [
     { labelKey: "filter.all", value: "all" },
-    { labelKey: "filter.targeted", value: "targeted" },
-    { labelKey: "filter.active", value: "active" },
+    { labelKey: "filter.starred", value: "starred" },
     { labelKey: "filter.pending", value: "pending" },
-    { labelKey: "filter.inactive", value: "inactive" },
   ];
 
   return (
@@ -701,7 +701,6 @@ export default function DashboardPage() {
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.unique_channels")} onClick={() => toggleSort("unique_channel_count")}>{t("th.unique_channels")}{sortIndicator("unique_channel_count")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("results_count")}>{t("th.results")}{sortIndicator("results_count")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("last_queried")}>{t("th.last_collected")}{sortIndicator("last_queried")}</th>
-                      <th className="text-center py-2.5 px-3">{t("th.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -725,11 +724,15 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-2 px-4">
                               <div className="flex items-center gap-2 flex-wrap">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggleStar(kw); }}
+                                  className={`text-sm transition-colors ${kw.is_targeted ? "text-yellow-400" : "text-gray-700 hover:text-gray-500"}`}
+                                  title={kw.is_targeted ? t("action.unstar") : t("action.star")}
+                                >
+                                  ★
+                                </button>
                                 <span className="font-medium text-gray-200">
                                   {kw.keyword}
-                                  {kw.is_targeted && (
-                                    <span className="ml-1 text-xs text-red-400">*</span>
-                                  )}
                                 </span>
                                 {kw.tags && kw.tags.length > 0 && (
                                   <span className="flex gap-1">
@@ -751,12 +754,6 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-2 px-3 text-center">
                               <StatusBadge status={badge} t={t} />
-                              {!badge && kw.is_active && (
-                                <span className="text-xs text-green-500">{t("status.active")}</span>
-                              )}
-                              {!kw.is_active && (
-                                <span className="text-xs text-gray-600">{t("status.paused")}</span>
-                              )}
                             </td>
                             <td className="py-2 px-3 text-right">
                               {rankDelta(kw.your_rank, kw.rank_7d_ago, t)}
@@ -773,21 +770,10 @@ export default function DashboardPage() {
                             <td className="py-2 px-3 text-right text-gray-500">
                               {timeAgo(kw.last_queried)}
                             </td>
-                            <td className="py-2 px-3 text-center">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleActive(kw);
-                                }}
-                                className="text-xs text-gray-500 hover:text-gray-300 px-2 py-0.5 rounded transition-colors"
-                              >
-                                {kw.is_active ? t("action.pause") : t("action.resume")}
-                              </button>
-                            </td>
                           </tr>
                           {isExpanded && (
                             <tr key={`${kw.id}-preview`}>
-                              <td colSpan={11} className="bg-gray-900/30 border-b border-gray-800/30">
+                              <td colSpan={10} className="bg-gray-900/30 border-b border-gray-800/30">
                                 <KeywordPreview keywordId={kw.id} t={t} />
                               </td>
                             </tr>
@@ -836,19 +822,25 @@ export default function DashboardPage() {
     </div>
   );
 
-  async function handleToggleActive(kw: Keyword) {
+  async function handleToggleStar(kw: Keyword) {
+    // Optimistic update: toggle locally first for instant feedback
+    setKeywords((prev) =>
+      prev.map((k) => (k.id === kw.id ? { ...k, is_targeted: !k.is_targeted } : k))
+    );
     try {
       await fetch("/api/keywords", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ids: [kw.id],
-          is_active: !kw.is_active,
+          is_targeted: !kw.is_targeted,
         }),
       });
-      fetchData();
     } catch {
-      // Silent fail -- user will see stale state
+      // Revert on failure
+      setKeywords((prev) =>
+        prev.map((k) => (k.id === kw.id ? { ...k, is_targeted: kw.is_targeted } : k))
+      );
     }
   }
 }

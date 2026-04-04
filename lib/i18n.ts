@@ -13,10 +13,8 @@ const strings: Record<string, Record<Locale, string>> = {
 
   // ── Filters ──
   "filter.all": { en: "All", es: "Todos" },
-  "filter.targeted": { en: "Targeted", es: "Objetivo" },
-  "filter.active": { en: "Active", es: "Activos" },
+  "filter.starred": { en: "Starred", es: "Destacados" },
   "filter.pending": { en: "Pending", es: "Pendientes" },
-  "filter.inactive": { en: "Inactive", es: "Inactivos" },
 
   // ── Sort ──
   "sort.label": { en: "Sort:", es: "Orden:" },
@@ -61,8 +59,8 @@ const strings: Record<string, Record<Locale, string>> = {
   },
 
   // ── Actions ──
-  "action.pause": { en: "Pause", es: "Pausar" },
-  "action.resume": { en: "Resume", es: "Reanudar" },
+  "action.star": { en: "Star this keyword", es: "Destacar este keyword" },
+  "action.unstar": { en: "Remove star", es: "Quitar destacado" },
   "action.retry": { en: "Retry", es: "Reintentar" },
 
   // ── Empty / error states ──
