@@ -414,7 +414,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterMode>("all");
-  const [sort, setSort] = useState<SortState>({ key: "last_queried", dir: "desc" });
+  const [sort, setSort] = useState<SortState>({ key: "demand_supply", dir: "desc" });
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Load saved locale on mount
@@ -574,14 +574,14 @@ export default function DashboardPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.demand_supply")} onClick={() => toggleSort("demand_supply")}>{t("th.demand_supply")}{sortIndicator("demand_supply")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.revenue_est")} onClick={() => toggleSort("revenue_est")}>{t("th.revenue_est")}{sortIndicator("revenue_est")}</th>
                       <th className="text-left py-2.5 px-4 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("keyword")}>{t("th.keyword")}{sortIndicator("keyword")}</th>
                       <th className="text-left py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("category")}>{t("th.category")}{sortIndicator("category")}</th>
                       <th className="text-center py-2.5 px-3">{t("th.status")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("your_rank")}>{t("th.your_rank")}{sortIndicator("your_rank")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("top5_views_sum")}>{t("th.top5_views")}{sortIndicator("top5_views_sum")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.unique_channels")} onClick={() => toggleSort("unique_channel_count")}>{t("th.unique_channels")}{sortIndicator("unique_channel_count")}</th>
-                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.demand_supply")} onClick={() => toggleSort("demand_supply")}>{t("th.demand_supply")}{sortIndicator("demand_supply")}</th>
-                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" title={t("tip.revenue_est")} onClick={() => toggleSort("revenue_est")}>{t("th.revenue_est")}{sortIndicator("revenue_est")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("results_count")}>{t("th.results")}{sortIndicator("results_count")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:text-gray-300 transition-colors" onClick={() => toggleSort("last_queried")}>{t("th.last_collected")}{sortIndicator("last_queried")}</th>
                       <th className="text-center py-2.5 px-3">{t("th.actions")}</th>
@@ -600,6 +600,12 @@ export default function DashboardPage() {
                             }`}
                             onClick={() => setExpandedId(isExpanded ? null : kw.id)}
                           >
+                            <td className={`py-2 px-3 text-right tabular-nums font-semibold ${dsColor(kw.demand_supply)}`}>
+                              {formatNumber(kw.demand_supply)}
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums text-gray-400">
+                              {formatCurrency(kw.revenue_est)}
+                            </td>
                             <td className="py-2 px-4 font-medium text-gray-200">
                               {kw.keyword}
                               {kw.is_targeted && (
@@ -626,12 +632,6 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                               {kw.unique_channel_count ?? "--"}
-                            </td>
-                            <td className={`py-2 px-3 text-right tabular-nums ${dsColor(kw.demand_supply)}`}>
-                              {formatNumber(kw.demand_supply)}
-                            </td>
-                            <td className="py-2 px-3 text-right tabular-nums text-gray-400">
-                              {formatCurrency(kw.revenue_est)}
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                               {kw.results_count ?? "--"}
