@@ -10,6 +10,12 @@
  *   YOUTUBE_API_KEY  — YouTube Data API v3 key
  */
 
+import ws from "ws";
+import { neonConfig } from "@neondatabase/serverless";
+
+// Node.js doesn't have a native WebSocket — tell Neon to use the ws package.
+neonConfig.webSocketConstructor = ws;
+
 import { runCollection, logCollection, QuotaExceededError } from "../lib/collector";
 
 async function main() {
