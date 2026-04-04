@@ -1,7 +1,7 @@
 import { query } from "./db";
 import { QUOTA, isQuotaError, isTransientError } from "./quota-budget";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────
 
 interface Keyword {
   id: number;
@@ -34,7 +34,7 @@ interface CollectionResult {
   abortReason?: "quota_exceeded" | "infra_error";
 }
 
-// ── YouTube API calls ────────────────────────────────────────────────────────
+// ── YouTube API calls ────────────────────────────────────────────────
 
 const YOUTUBE_BASE = "https://www.googleapis.com/youtube/v3";
 
@@ -117,7 +117,7 @@ async function fetchVideoMetadata(
   };
 }
 
-// ── Error classes ──────────────────────────────────────────────────────────
+// ── Error classes ────────────────────────────────────────────────────
 
 export class QuotaExceededError extends Error {
   constructor(message: string) {
@@ -133,7 +133,7 @@ export class TransientError extends Error {
   }
 }
 
-// ── Core collector ─────────────────────────────────────────────────────────
+// ── Core collector ───────────────────────────────────────────────────
 
 /**
  * Fetch active keywords that haven't been queried today yet.
@@ -284,6 +284,43 @@ export async function runCollection(apiKey: string): Promise<CollectionResult> {
   }
 
   return result;
+}
+
+/**
+ * Collect rankings for a single keyword on demand.
+ * Used by POST /api/keywords to immediately populate a newly added keyword.
+ *
+ * Returns the quota cost incurred, or null if collection failed.
+ * Failures are swallowed — the keyword still gets created; it just
+ * stays in "pending" state until the next cron run picks it up.
+ */
+export async function collectSingleKeyword(
+  keywordId: number,
+  keywordText: string,
+  apiKey: string
+): Promise<{ quotaUsed: number } | null> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { videoIds, quotaCost: searchCost } = await searchVideos(keywordText, apiKey);
+    let quotaUsed = searchCost;
+
+    if (videoIds.length === 0) {
+      await query("UPDATE keywords SET last_queried = NOW() WHERE id = $1", [keywordId]);
+      return { quotaUsed };
+    }
+
+    const { videos, quotaCost: videosCost } = await fetchVideoMetadata(videoIds, apiKey);
+    quotaUsed += videosCost;
+
+    await upsertRankings(keywordId, today, videoIds, videos);
+    await query("UPDATE keywords SET last_queried = NOW() WHERE id = $1", [keywordId]);
+
+    return { quotaUsed };
+  } catch {
+    // Swallow errors — keyword was already created, cron will retry
+    return null;
+  }
 }
 
 /**
