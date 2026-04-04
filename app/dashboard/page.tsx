@@ -325,103 +325,6 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
             {expandedId === log.id && log.errors && log.errors.length > 0 && (
               <tr key={`${log.id}-errors`}>
                 <td colSpan={5} className="py-2 px-4 bg-gray-900/50">
-                  <ul className="text-xs teting(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-3 py-3">
-      <input
-        type="text"
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        placeholder="Add keyword..."
-        className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-64"
-      />
-      <input
-        type="text"
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        placeholder="Category"
-        className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-32"
-      />
-      <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={isTargeted}
-          onChange={(e) => setIsTargeted(e.target.checked)}
-          className="rounded border-gray-600"
-        />
-        Targeted
-      </label>
-      <button
-        type="submit"
-        disabled={submitting || !keyword.trim()}
-        className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-      >
-        {submitting ? "Adding..." : "Add"}
-      </button>
-      {error && <span className="text-red-400 text-sm">{error}</span>}
-      {keyword.trim() && (
-        <span className="text-gray-500 text-xs">+105 units/day</span>
-      )}
-    </form>
-  );
-}
-
-function CollectionLog({ logs }: { logs: LogEntry[] }) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
-  if (logs.length === 0) {
-    return (
-      <p className="text-gray-500 text-sm py-4">
-        No collection runs yet. Collector starts at 02:00 UTC.
-      </p>
-    );
-  }
-
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-gray-500 text-xs border-b border-gray-800">
-          <th className="text-left py-2">Timestamp</th>
-          <th className="text-right py-2">Keywords</th>
-          <th className="text-right py-2">Quota</th>
-          <th className="text-right py-2">Errors</th>
-          <th className="text-right py-2">Duration</th>
-        </tr>
-      </thead>
-      <tbody>
-        {logs.map((log) => (
-          <>
-            <tr
-              key={log.id}
-              className="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
-              onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-            >
-              <td className="py-2 text-gray-300">
-                {new Date(log.run_at).toLocaleString()}
-              </td>
-              <td className="py-2 text-right tabular-nums text-gray-300">
-                {log.keywords_queried}
-              </td>
-              <td className="py-2 text-right tabular-nums text-gray-300">
-                {log.quota_used.toLocaleString()}
-              </td>
-              <td className="py-2 text-right">
-                {log.errors && log.errors.length > 0 ? (
-                  <span className="text-red-400">{log.errors.length}</span>
-                ) : (
-                  <span className="text-gray-500">0</span>
-                )}
-              </td>
-              <td className="py-2 text-right tabular-nums text-gray-400">
-                {log.duration_ms ? `${(log.duration_ms / 1000).toFixed(1)}s` : "--"}
-              </td>
-            </tr>
-            {expandedId === log.id && log.errors && log.errors.length > 0 && (
-              <tr key={`${log.id}-errors`}>
-                <td colSpan={5} className="py-2 px-4 bg-gray-900/50">
                   <ul className="text-xs text-red-400 space-y-1">
                     {log.errors.map((err, i) => (
                       <li key={i}>* {err}</li>
@@ -706,4 +609,3 @@ export default function DashboardPage() {
     }
   }
 }
-
