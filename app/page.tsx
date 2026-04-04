@@ -1,4 +1,22 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createT, getSavedLocale, saveLocale, Locale } from "@/lib/i18n";
+
 export default function Home() {
+  const [locale, setLocale] = useState<Locale>("es");
+
+  useEffect(() => {
+    setLocale(getSavedLocale());
+  }, []);
+
+  const t = createT(locale);
+
+  function handleLocaleChange(l: Locale) {
+    setLocale(l);
+    saveLocale(l);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-red-950 text-white font-sans">
       {/* Nav */}
@@ -17,14 +35,34 @@ export default function Home() {
           </svg>
           <span className="text-xl font-bold tracking-tight">YTCombinator</span>
         </div>
-        <a
-          href="https://github.com/1000Problems/ytcombinator"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          GitHub
-        </a>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-xs">
+            <button
+              onClick={() => handleLocaleChange("es")}
+              className={`px-1.5 py-0.5 rounded transition-colors ${
+                locale === "es" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              ES
+            </button>
+            <button
+              onClick={() => handleLocaleChange("en")}
+              className={`px-1.5 py-0.5 rounded transition-colors ${
+                locale === "en" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              EN
+            </button>
+          </div>
+          <a
+            href="https://github.com/1000Problems/ytcombinator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            GitHub
+          </a>
+        </div>
       </nav>
 
       {/* Hero */}
@@ -46,21 +84,20 @@ export default function Home() {
           </svg>
         </div>
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-          Your YouTube Channel,{" "}
+          {t("landing.hero_title_1")}{" "}
           <span className="bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
-            on Autopilot
+            {t("landing.hero_title_2")}
           </span>
         </h1>
         <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-10 leading-relaxed">
-          YTCombinator is a suite of tools that schedules uploads, tracks analytics,
-          and optimizes your content — so you can focus on creating, not managing.
+          {t("landing.hero_sub")}
         </p>
         <div className="flex gap-4">
           <a
             href="#features"
             className="px-6 py-3 bg-red-600 hover:bg-red-500 rounded-lg font-semibold transition-colors"
           >
-            See Features
+            {t("landing.cta_features")}
           </a>
           <a
             href="https://github.com/1000Problems/ytcombinator"
@@ -68,7 +105,7 @@ export default function Home() {
             rel="noopener noreferrer"
             className="px-6 py-3 border border-gray-700 hover:border-gray-500 rounded-lg font-semibold transition-colors"
           >
-            View Source
+            {t("landing.cta_source")}
           </a>
         </div>
       </section>
@@ -86,10 +123,9 @@ export default function Home() {
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-3">Smart Scheduling</h3>
+            <h3 className="text-xl font-bold mb-3">{t("landing.card1_title")}</h3>
             <p className="text-gray-400 leading-relaxed">
-              Queue videos for upload at the perfect time. Set it, forget it, and let
-              YTCombinator handle the publishing cadence your audience expects.
+              {t("landing.card1_desc")}
             </p>
           </div>
 
@@ -100,10 +136,9 @@ export default function Home() {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-3">Deep Analytics</h3>
+            <h3 className="text-xl font-bold mb-3">{t("landing.card2_title")}</h3>
             <p className="text-gray-400 leading-relaxed">
-              Track views, CTR, retention, and subscriber growth over time. Daily
-              snapshots give you trends without burning through your API quota.
+              {t("landing.card2_desc")}
             </p>
           </div>
 
@@ -114,10 +149,9 @@ export default function Home() {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-3">Content Optimizer</h3>
+            <h3 className="text-xl font-bold mb-3">{t("landing.card3_title")}</h3>
             <p className="text-gray-400 leading-relaxed">
-              Get data-driven title, description, and tag suggestions. SEO scoring
-              and keyword analysis help every video reach its full potential.
+              {t("landing.card3_desc")}
             </p>
           </div>
         </div>
@@ -146,7 +180,7 @@ export default function Home() {
         >
           1000Problems
         </a>{" "}
-        project
+        {t("landing.footer")}
       </footer>
     </div>
   );
