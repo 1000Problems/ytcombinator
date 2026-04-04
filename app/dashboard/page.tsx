@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createT, getSavedLocale, saveLocale, Locale } from "@/lib/i18n";
 
 // ---- Types ------------------------------------------------------------------------------------------------------------------------
 
@@ -16,6 +17,9 @@ interface Keyword {
   your_rank: number | null;
   rank_7d_ago: number | null;
   top5_views_sum: number | null;
+  unique_channel_count: number | null;
+  demand_supply: number | null;
+  revenue_est: number | null;
 }
 
 interface Ranking {
@@ -39,19 +43,21 @@ interface LogEntry {
 }
 
 type FilterMode = "all" | "targeted" | "active" | "inactive" | "pending";
-type SortMode = "latest" | "views";
+type SortMode = "latest" | "views" | "opportunity";
 
 // ---- Helpers --------------------------------------------------------------------------------------------------------------------
 
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return "Never";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+function makeTimeAgo(t: (k: string) => string) {
+  return function timeAgo(dateStr: string | null): string {
+    if (!dateStr) return t("time.never");
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 60) return `${mins}${t("time.m_ago")}`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}${t("time.h_ago")}`;
+    const days = Math.floor(hours / 24);
+    return `${days}${t("time.d_ago")}`;
+  };
 }
 
 function staleBadge(lastQueried: string | null): "stale" | "pending" | null {
@@ -61,12 +67,12 @@ function staleBadge(lastQueried: string | null): "stale" | "pending" | null {
   return null;
 }
 
-function rankDelta(current: number | null, weekAgo: number | null): React.ReactNode {
+function rankDelta(current: number | null, weekAgo: number | null, t: (k: string) => string): React.ReactNode {
   if (current === null) return <span className="text-gray-500">--</span>;
   if (weekAgo === null) {
-    return <span className="text-gray-400">{current} <span className="text-blue-400 text-xs">(new)</span></span>;
+    return <span className="text-gray-400">{current} <span className="text-blue-400 text-xs">{t("rank.new")}</span></span>;
   }
-  const diff = weekAgo - current; // positive = improved
+  const diff = weekAgo - current;
   if (diff > 0) {
     return <span className="text-gray-300">{current} <span className="text-green-500">^{diff}</span></span>;
   }
@@ -83,7 +89,44 @@ function formatNumber(n: number | null): string {
   return String(n);
 }
 
+function formatCurrency(n: number | null): string {
+  if (n === null || n === undefined) return "--";
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+/** Color code the D/S ratio: green = good opportunity, red = saturated */
+function dsColor(ds: number | null): string {
+  if (ds === null) return "text-gray-500";
+  if (ds >= 50_000) return "text-green-400";
+  if (ds >= 10_000) return "text-yellow-400";
+  return "text-red-400";
+}
+
 // ---- Components --------------------------------------------------------------------------------------------------------------
+
+function LanguageToggle({ locale, onChange }: { locale: Locale; onChange: (l: Locale) => void }) {
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      <button
+        onClick={() => onChange("es")}
+        className={`px-1.5 py-0.5 rounded transition-colors ${
+          locale === "es" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+        }`}
+      >
+        ES
+      </button>
+      <button
+        onClick={() => onChange("en")}
+        className={`px-1.5 py-0.5 rounded transition-colors ${
+          locale === "en" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+        }`}
+      >
+        EN
+      </button>
+    </div>
+  );
+}
 
 function QuotaGauge({ logs }: { logs: LogEntry[] }) {
   const todayLog = logs.find((l) => {
@@ -111,20 +154,24 @@ function QuotaGauge({ logs }: { logs: LogEntry[] }) {
   );
 }
 
-function StatusBadge({ status }: { status: "stale" | "pending" | null }) {
+function StatusBadge({ status, t }: { status: "stale" | "pending" | null; t: (k: string) => string }) {
   if (!status) return null;
   const colors = {
     stale: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
     pending: "bg-red-500/20 text-red-400 border-red-500/30",
   };
+  const labels = {
+    stale: t("status.stale"),
+    pending: t("status.pending"),
+  };
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded border ${colors[status]}`}>
-      {status}
+      {labels[status]}
     </span>
   );
 }
 
-function KeywordPreview({ keywordId }: { keywordId: number }) {
+function KeywordPreview({ keywordId, t }: { keywordId: number; t: (k: string) => string }) {
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,13 +190,13 @@ function KeywordPreview({ keywordId }: { keywordId: number }) {
   }, [keywordId]);
 
   if (loading) {
-    return <div className="py-3 px-6 text-gray-500 text-sm">Loading top 5...</div>;
+    return <div className="py-3 px-6 text-gray-500 text-sm">{t("preview.loading")}</div>;
   }
   if (error) {
-    return <div className="py-3 px-6 text-red-400 text-sm">Failed to load results.</div>;
+    return <div className="py-3 px-6 text-red-400 text-sm">{t("preview.error")}</div>;
   }
   if (rankings.length === 0) {
-    return <div className="py-3 px-6 text-gray-500 text-sm">No results yet. This keyword hasn&apos;t been collected.</div>;
+    return <div className="py-3 px-6 text-gray-500 text-sm">{t("preview.empty")}</div>;
   }
 
   return (
@@ -158,9 +205,9 @@ function KeywordPreview({ keywordId }: { keywordId: number }) {
         <thead>
           <tr className="text-gray-500 text-xs">
             <th className="text-left py-1 w-10">#</th>
-            <th className="text-left py-1">Video</th>
-            <th className="text-left py-1">Channel</th>
-            <th className="text-right py-1">Views</th>
+            <th className="text-left py-1">{t("preview.video")}</th>
+            <th className="text-left py-1">{t("preview.channel")}</th>
+            <th className="text-right py-1">{t("preview.views")}</th>
           </tr>
         </thead>
         <tbody>
@@ -187,11 +234,12 @@ function KeywordPreview({ keywordId }: { keywordId: number }) {
   );
 }
 
-function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
+function AddKeywordForm({ onAdded, t }: { onAdded: () => void; t: (k: string) => string }) {
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [isTargeted, setIsTargeted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [collecting, setCollecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -199,6 +247,7 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
     if (!keyword.trim()) return;
 
     setSubmitting(true);
+    setCollecting(false);
     setError(null);
 
     try {
@@ -209,28 +258,36 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
           keyword: keyword.trim(),
           category: category.trim() || null,
           is_targeted: isTargeted,
+          collect_inline: true, // signal the API to wait for collection
         }),
       });
 
       if (res.status === 409) {
-        setError("Keyword already exists");
+        setError(t("form.error_exists"));
         return;
       }
       if (!res.ok) {
-        setError("Failed to add keyword");
+        setError(t("form.error_add"));
         return;
       }
 
+      // If the server collected inline, data is already in the DB.
+      // If not (no API key), the keyword was still created.
       setKeyword("");
       setCategory("");
       setIsTargeted(false);
       onAdded();
     } catch {
-      setError("Network error");
+      setError(t("form.error_network"));
     } finally {
       setSubmitting(false);
+      setCollecting(false);
     }
   }
+
+  // Determine button label
+  let buttonLabel = t("form.add");
+  if (submitting) buttonLabel = t("form.collecting");
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-3 py-3">
@@ -238,14 +295,14 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
         type="text"
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
-        placeholder="Add keyword..."
+        placeholder={t("form.placeholder_keyword")}
         className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-64"
       />
       <input
         type="text"
         value={category}
         onChange={(e) => setCategory(e.target.value)}
-        placeholder="Category"
+        placeholder={t("form.placeholder_category")}
         className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-32"
       />
       <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
@@ -255,30 +312,30 @@ function AddKeywordForm({ onAdded }: { onAdded: () => void }) {
           onChange={(e) => setIsTargeted(e.target.checked)}
           className="rounded border-gray-600"
         />
-        Targeted
+        {t("form.targeted")}
       </label>
       <button
         type="submit"
         disabled={submitting || !keyword.trim()}
-        className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+        className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors min-w-[140px]"
       >
-        {submitting ? "Adding..." : "Add"}
+        {buttonLabel}
       </button>
       {error && <span className="text-red-400 text-sm">{error}</span>}
-      {keyword.trim() && (
-        <span className="text-gray-500 text-xs">+105 units/day</span>
+      {keyword.trim() && !submitting && (
+        <span className="text-gray-500 text-xs">{t("form.quota_hint")}</span>
       )}
     </form>
   );
 }
 
-function CollectionLog({ logs }: { logs: LogEntry[] }) {
+function CollectionLog({ logs, t }: { logs: LogEntry[]; t: (k: string) => string }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   if (logs.length === 0) {
     return (
       <p className="text-gray-500 text-sm py-4">
-        No collection runs yet. Collector starts at 02:00 UTC.
+        {t("log.empty")}
       </p>
     );
   }
@@ -287,11 +344,11 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
     <table className="w-full text-sm">
       <thead>
         <tr className="text-gray-500 text-xs border-b border-gray-800">
-          <th className="text-left py-2">Timestamp</th>
-          <th className="text-right py-2">Keywords</th>
-          <th className="text-right py-2">Quota</th>
-          <th className="text-right py-2">Errors</th>
-          <th className="text-right py-2">Duration</th>
+          <th className="text-left py-2">{t("log.timestamp")}</th>
+          <th className="text-right py-2">{t("log.keywords")}</th>
+          <th className="text-right py-2">{t("log.quota")}</th>
+          <th className="text-right py-2">{t("log.errors")}</th>
+          <th className="text-right py-2">{t("log.duration")}</th>
         </tr>
       </thead>
       <tbody>
@@ -343,6 +400,7 @@ function CollectionLog({ logs }: { logs: LogEntry[] }) {
 // ---- Main Dashboard ------------------------------------------------------------------------------------------------------
 
 export default function DashboardPage() {
+  const [locale, setLocale] = useState<Locale>("es");
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -350,6 +408,19 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [sort, setSort] = useState<SortMode>("latest");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // Load saved locale on mount
+  useEffect(() => {
+    setLocale(getSavedLocale());
+  }, []);
+
+  const t = createT(locale);
+  const timeAgo = makeTimeAgo(t);
+
+  function handleLocaleChange(l: Locale) {
+    setLocale(l);
+    saveLocale(l);
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -368,7 +439,7 @@ export default function DashboardPage() {
       setLogs(logData.logs);
       setError(null);
     } catch (err) {
-      setError("Failed to load dashboard data");
+      setError(t("error.load"));
     } finally {
       setLoading(false);
     }
@@ -382,35 +453,40 @@ export default function DashboardPage() {
     if (sort === "views") {
       return (b.top5_views_sum ?? 0) - (a.top5_views_sum ?? 0);
     }
-    // "latest" = most recently queried first; never-queried at the end
+    if (sort === "opportunity") {
+      return (b.demand_supply ?? 0) - (a.demand_supply ?? 0);
+    }
     const aTime = a.last_queried ? new Date(a.last_queried).getTime() : 0;
     const bTime = b.last_queried ? new Date(b.last_queried).getTime() : 0;
     return bTime - aTime;
   });
 
-  const filterButtons: { label: string; value: FilterMode }[] = [
-    { label: "All", value: "all" },
-    { label: "Targeted", value: "targeted" },
-    { label: "Active", value: "active" },
-    { label: "Pending", value: "pending" },
-    { label: "Inactive", value: "inactive" },
+  const filterButtons: { labelKey: string; value: FilterMode }[] = [
+    { labelKey: "filter.all", value: "all" },
+    { labelKey: "filter.targeted", value: "targeted" },
+    { labelKey: "filter.active", value: "active" },
+    { labelKey: "filter.pending", value: "pending" },
+    { labelKey: "filter.inactive", value: "inactive" },
   ];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-800/50">
-        <a href="/" className="text-lg font-semibold tracking-tight">
-          <span className="text-red-500">YT</span>Combinator
-        </a>
+        <div className="flex items-center gap-4">
+          <a href="/" className="text-lg font-semibold tracking-tight">
+            <span className="text-red-500">YT</span>Combinator
+          </a>
+          <LanguageToggle locale={locale} onChange={handleLocaleChange} />
+        </div>
         <QuotaGauge logs={logs} />
       </nav>
 
       <main className="max-w-6xl mx-auto px-8 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-medium text-gray-200">Keyword Portfolio</h1>
-          <span className="text-sm text-gray-500">{keywords.length} keywords</span>
+          <h1 className="text-xl font-medium text-gray-200">{t("dash.title")}</h1>
+          <span className="text-sm text-gray-500">{keywords.length} {t("dash.keyword_count")}</span>
         </div>
 
         {/* Filters + Sort */}
@@ -426,19 +502,19 @@ export default function DashboardPage() {
                     : "text-gray-500 hover:text-gray-300"
                 }`}
               >
-                {btn.label}
+                {t(btn.labelKey)}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <span className="mr-1">Sort:</span>
+            <span className="mr-1">{t("sort.label")}</span>
             <button
               onClick={() => setSort("latest")}
               className={`px-2 py-1 rounded transition-colors ${
                 sort === "latest" ? "bg-gray-800 text-white" : "hover:text-gray-300"
               }`}
             >
-              Latest
+              {t("sort.latest")}
             </button>
             <button
               onClick={() => setSort("views")}
@@ -446,7 +522,15 @@ export default function DashboardPage() {
                 sort === "views" ? "bg-gray-800 text-white" : "hover:text-gray-300"
               }`}
             >
-              Top Views
+              {t("sort.views")}
+            </button>
+            <button
+              onClick={() => setSort("opportunity")}
+              className={`px-2 py-1 rounded transition-colors ${
+                sort === "opportunity" ? "bg-gray-800 text-white" : "hover:text-gray-300"
+              }`}
+            >
+              {t("sort.opportunity")}
             </button>
           </div>
         </div>
@@ -459,7 +543,7 @@ export default function DashboardPage() {
               onClick={fetchData}
               className="text-red-400 text-sm underline mt-1"
             >
-              Retry
+              {t("action.retry")}
             </button>
           </div>
         )}
@@ -478,9 +562,9 @@ export default function DashboardPage() {
           <>
             {keywords.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-gray-500 mb-2">No keywords yet.</p>
+                <p className="text-gray-500 mb-2">{t("empty.title")}</p>
                 <p className="text-gray-600 text-sm">
-                  Seed your keyword list below, or run a bulk import via SQL.
+                  {t("empty.subtitle")}
                 </p>
               </div>
             ) : (
@@ -488,21 +572,24 @@ export default function DashboardPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-500 text-xs border-b border-gray-800/50 bg-gray-900/30">
-                      <th className="text-left py-2.5 px-4">Keyword</th>
-                      <th className="text-left py-2.5 px-3">Category</th>
-                      <th className="text-center py-2.5 px-3">Status</th>
-                      <th className="text-right py-2.5 px-3">Your Rank</th>
+                      <th className="text-left py-2.5 px-4">{t("th.keyword")}</th>
+                      <th className="text-left py-2.5 px-3">{t("th.category")}</th>
+                      <th className="text-center py-2.5 px-3">{t("th.status")}</th>
+                      <th className="text-right py-2.5 px-3">{t("th.your_rank")}</th>
                       <th
                         className={`text-right py-2.5 px-3 cursor-pointer select-none transition-colors ${
                           sort === "views" ? "text-white" : "hover:text-gray-300"
                         }`}
                         onClick={() => setSort(sort === "views" ? "latest" : "views")}
                       >
-                        Top 5 Views{sort === "views" ? " v" : ""}
+                        {t("th.top5_views")}{sort === "views" ? " v" : ""}
                       </th>
-                      <th className="text-right py-2.5 px-3">Results</th>
-                      <th className="text-right py-2.5 px-3">Last Collected</th>
-                      <th className="text-center py-2.5 px-3">Actions</th>
+                      <th className="text-right py-2.5 px-3" title={t("tip.unique_channels")}>{t("th.unique_channels")}</th>
+                      <th className="text-right py-2.5 px-3" title={t("tip.demand_supply")}>{t("th.demand_supply")}</th>
+                      <th className="text-right py-2.5 px-3" title={t("tip.revenue_est")}>{t("th.revenue_est")}</th>
+                      <th className="text-right py-2.5 px-3">{t("th.results")}</th>
+                      <th className="text-right py-2.5 px-3">{t("th.last_collected")}</th>
+                      <th className="text-center py-2.5 px-3">{t("th.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -528,19 +615,28 @@ export default function DashboardPage() {
                               {kw.category || "--"}
                             </td>
                             <td className="py-2 px-3 text-center">
-                              <StatusBadge status={badge} />
+                              <StatusBadge status={badge} t={t} />
                               {!badge && kw.is_active && (
-                                <span className="text-xs text-green-500">active</span>
+                                <span className="text-xs text-green-500">{t("status.active")}</span>
                               )}
                               {!kw.is_active && (
-                                <span className="text-xs text-gray-600">paused</span>
+                                <span className="text-xs text-gray-600">{t("status.paused")}</span>
                               )}
                             </td>
                             <td className="py-2 px-3 text-right">
-                              {rankDelta(kw.your_rank, kw.rank_7d_ago)}
+                              {rankDelta(kw.your_rank, kw.rank_7d_ago, t)}
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                               {formatNumber(kw.top5_views_sum)}
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums text-gray-400">
+                              {kw.unique_channel_count ?? "--"}
+                            </td>
+                            <td className={`py-2 px-3 text-right tabular-nums ${dsColor(kw.demand_supply)}`}>
+                              {formatNumber(kw.demand_supply)}
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums text-gray-400">
+                              {formatCurrency(kw.revenue_est)}
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                               {kw.results_count ?? "--"}
@@ -556,14 +652,14 @@ export default function DashboardPage() {
                                 }}
                                 className="text-xs text-gray-500 hover:text-gray-300 px-2 py-0.5 rounded transition-colors"
                               >
-                                {kw.is_active ? "Pause" : "Resume"}
+                                {kw.is_active ? t("action.pause") : t("action.resume")}
                               </button>
                             </td>
                           </tr>
                           {isExpanded && (
                             <tr key={`${kw.id}-preview`}>
-                              <td colSpan={8} className="bg-gray-900/30 border-b border-gray-800/30">
-                                <KeywordPreview keywordId={kw.id} />
+                              <td colSpan={11} className="bg-gray-900/30 border-b border-gray-800/30">
+                                <KeywordPreview keywordId={kw.id} t={t} />
                               </td>
                             </tr>
                           )}
@@ -577,16 +673,16 @@ export default function DashboardPage() {
 
             {/* Add keyword form */}
             <div className="mt-4">
-              <AddKeywordForm onAdded={fetchData} />
+              <AddKeywordForm onAdded={fetchData} t={t} />
             </div>
           </>
         )}
 
         {/* Collection Log */}
         <div className="mt-12">
-          <h2 className="text-lg font-medium text-gray-300 mb-4">Collection Log</h2>
+          <h2 className="text-lg font-medium text-gray-300 mb-4">{t("log.title")}</h2>
           <div className="border border-gray-800/50 rounded-lg overflow-hidden px-4">
-            <CollectionLog logs={logs} />
+            <CollectionLog logs={logs} t={t} />
           </div>
         </div>
       </main>
