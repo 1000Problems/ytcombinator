@@ -19,6 +19,9 @@ interface KeywordWithRank extends KeywordRow {
   your_rank: number | null;
   rank_7d_ago: number | null;
   top5_views_sum: number | null;
+  unique_channel_count: number | null;
+  demand_supply: number | null;
+  revenue_est: number | null;
 }
 
 // ---- GET /api/keywords ------------------------------------------------------------------------------------------------
@@ -65,6 +68,12 @@ export async function GET(request: NextRequest) {
         ) ranked
         WHERE rn <= 5
         GROUP BY keyword_id
+      ),
+      unique_channels AS (
+        SELECT keyword_id, COUNT(DISTINCT channel_id) AS unique_channel_count
+        FROM keyword_rankings
+        WHERE snapshot_date = CURRENT_DATE
+        GROUP BY keyword_id
       )
       SELECT
         k.id, k.keyword, k.category, k.is_targeted, k.is_active,
@@ -72,12 +81,20 @@ export async function GET(request: NextRequest) {
         lc.results_count,
         yr.rank_position AS your_rank,
         yr7.rank_position AS rank_7d_ago,
-        tv.top5_views_sum
+        tv.top5_views_sum,
+        uc.unique_channel_count,
+        CASE WHEN uc.unique_channel_count > 0
+          THEN ROUND((tv.top5_views_sum::numeric / 5) / uc.unique_channel_count, 0)
+          ELSE NULL END AS demand_supply,
+        CASE WHEN tv.top5_views_sum IS NOT NULL
+          THEN ROUND(tv.top5_views_sum::numeric * 5 / 1000, 2)
+          ELSE NULL END AS revenue_est
       FROM keywords k
       LEFT JOIN latest_counts lc ON lc.keyword_id = k.id
       LEFT JOIN your_rank yr ON yr.keyword_id = k.id
       LEFT JOIN your_rank_7d yr7 ON yr7.keyword_id = k.id
       LEFT JOIN top5_views tv ON tv.keyword_id = k.id
+      LEFT JOIN unique_channels uc ON uc.keyword_id = k.id
       WHERE 1=1
         ${filter === "targeted" ? "AND k.is_targeted = TRUE" : ""}
         ${filter === "active" ? "AND k.is_active = TRUE" : ""}
@@ -138,13 +155,24 @@ export async function POST(request: NextRequest) {
 
     const inserted = rows[0];
 
-    // Fire-and-forget: collect rankings for this keyword immediately.
-    // The response doesn't wait -- the dashboard will show data on next refresh.
+    // Inline collection: if the client sends collect_inline=true, we await
+    // the YouTube API call so the dashboard can show data immediately.
+    // Otherwise fall back to fire-and-forget for programmatic callers.
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (apiKey) {
-      collectSingleKeyword(inserted.id, inserted.keyword, apiKey).catch(() => {
-        // Swallowed -- cron will pick it up if this fails
-      });
+      if (body.collect_inline) {
+        // Block until collection finishes (typically 2-4s)
+        const result = await collectSingleKeyword(inserted.id, inserted.keyword, apiKey);
+        return NextResponse.json(
+          { ...inserted, collected: result !== null, quota_used: result?.quotaUsed ?? 0 },
+          { status: 201 }
+        );
+      } else {
+        // Fire-and-forget for backward compat
+        collectSingleKeyword(inserted.id, inserted.keyword, apiKey).catch(() => {
+          // Swallowed -- cron will pick it up if this fails
+        });
+      }
     }
 
     return NextResponse.json(inserted, { status: 201 });
@@ -208,4 +236,3 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
-
