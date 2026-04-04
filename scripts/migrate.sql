@@ -41,6 +41,9 @@ CREATE INDEX IF NOT EXISTS idx_rankings_date_keyword
 CREATE INDEX IF NOT EXISTS idx_rankings_channel
   ON keyword_rankings(channel_id);
 
+-- Auto-generated topic tags (extracted from YouTube result titles)
+ALTER TABLE keywords ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+
 -- Collection job log
 CREATE TABLE IF NOT EXISTS collection_log (
   id              SERIAL PRIMARY KEY,

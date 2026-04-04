@@ -133,6 +133,56 @@ export class TransientError extends Error {
   }
 }
 
+// ── Tag extraction ──────────────────────────────────────────────────
+
+/** Common words to ignore when extracting topic tags from video titles. */
+const STOP_WORDS = new Set([
+  "the","a","an","and","or","but","in","on","at","to","for","of","with",
+  "by","from","is","it","its","this","that","are","was","were","be","been",
+  "has","have","had","do","does","did","will","would","could","should",
+  "may","might","can","not","no","so","if","my","me","your","you","we",
+  "our","they","them","he","she","him","her","how","what","why","when",
+  "where","which","who","all","more","most","very","just","also","about",
+  "como","de","el","la","los","las","un","una","en","con","por","para",
+  "que","es","del","al","se","lo","su","más","como","todo","hay","sin",
+  "tu","mi","te","nos","les","sus","esta","este","estos","estas",
+  "best","top","new","good","great","make","get","use","using","used",
+  "video","videos","youtube","2024","2025","2026","2027",
+  "part","episode","full","complete","official","review","tutorial",
+]);
+
+/**
+ * Extract the top N topic tags from a set of video titles.
+ * Returns lowercase, deduplicated tags sorted by frequency.
+ */
+export function extractTags(videoTitles: string[], maxTags = 5): string[] {
+  const freq = new Map<string, number>();
+
+  for (const title of videoTitles) {
+    // Strip non-alphanumeric (keep accented chars), lowercase, split on spaces
+    const words = title
+      .toLowerCase()
+      .replace(/[^a-záéíóúñüA-Z0-9\s]/gi, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
+
+    // Count each unique word once per title (avoid one title skewing results)
+    const seen = new Set<string>();
+    for (const word of words) {
+      if (!seen.has(word)) {
+        seen.add(word);
+        freq.set(word, (freq.get(word) ?? 0) + 1);
+      }
+    }
+  }
+
+  // Sort by frequency descending, take top N
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxTags)
+    .map(([word]) => word);
+}
+
 // ── Core collector ───────────────────────────────────────────────────
 
 /**
@@ -261,8 +311,13 @@ export async function runCollection(apiKey: string): Promise<CollectionResult> {
       // Step 3: Upsert rankings
       await upsertRankings(kw.id, today, videoIds, videos);
 
-      // Step 4: Mark keyword as queried
-      await query("UPDATE keywords SET last_queried = NOW() WHERE id = $1", [kw.id]);
+      // Step 4: Extract topic tags from video titles and update keyword
+      const titles = videos.map((v) => v.snippet.title).filter(Boolean);
+      const tags = extractTags(titles);
+      await query(
+        "UPDATE keywords SET last_queried = NOW(), tags = $2 WHERE id = $1",
+        [kw.id, tags]
+      );
       result.keywordsQueried++;
     } catch (err) {
       if (err instanceof QuotaExceededError) {
@@ -298,7 +353,7 @@ export async function collectSingleKeyword(
   keywordId: number,
   keywordText: string,
   apiKey: string
-): Promise<{ quotaUsed: number } | null> {
+): Promise<{ quotaUsed: number; tags: string[] } | null> {
   try {
     const today = new Date().toISOString().split("T")[0];
 
@@ -307,16 +362,23 @@ export async function collectSingleKeyword(
 
     if (videoIds.length === 0) {
       await query("UPDATE keywords SET last_queried = NOW() WHERE id = $1", [keywordId]);
-      return { quotaUsed };
+      return { quotaUsed, tags: [] };
     }
 
     const { videos, quotaCost: videosCost } = await fetchVideoMetadata(videoIds, apiKey);
     quotaUsed += videosCost;
 
     await upsertRankings(keywordId, today, videoIds, videos);
-    await query("UPDATE keywords SET last_queried = NOW() WHERE id = $1", [keywordId]);
 
-    return { quotaUsed };
+    // Extract topic tags from video titles
+    const titles = videos.map((v) => v.snippet.title).filter(Boolean);
+    const tags = extractTags(titles);
+    await query(
+      "UPDATE keywords SET last_queried = NOW(), tags = $2 WHERE id = $1",
+      [keywordId, tags]
+    );
+
+    return { quotaUsed, tags };
   } catch {
     // Swallow errors — keyword was already created, cron will retry
     return null;

@@ -9,6 +9,7 @@ interface Keyword {
   id: number;
   keyword: string;
   category: string | null;
+  tags: string[];
   is_targeted: boolean;
   is_active: boolean;
   added_at: string;
@@ -20,6 +21,17 @@ interface Keyword {
   unique_channel_count: number | null;
   demand_supply: number | null;
   revenue_est: number | null;
+}
+
+/** Result from the research preview (before adding to portfolio). */
+interface ResearchPreview {
+  id: number;
+  keyword: string;
+  tags: string[];
+  demand_supply: number | null;
+  revenue_est: number | null;
+  unique_channel_count: number | null;
+  top5_views_sum: number | null;
 }
 
 interface Ranking {
@@ -242,98 +254,155 @@ function KeywordPreview({ keywordId, t }: { keywordId: number; t: (k: string) =>
   );
 }
 
-function AddKeywordForm({ onAdded, t }: { onAdded: () => void; t: (k: string) => string }) {
-  const [keyword, setKeyword] = useState("");
-  const [category, setCategory] = useState("");
-  const [isTargeted, setIsTargeted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [collecting, setCollecting] = useState(false);
+// ---- Research Bar (replaces old AddKeywordForm) ----------------------------------------------------------------------------------
+
+function ResearchBar({
+  onAdded,
+  t,
+}: {
+  onAdded: () => void;
+  t: (k: string) => string;
+}) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ResearchPreview | null>(null);
+  const [added, setAdded] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleResearch(e: React.FormEvent) {
     e.preventDefault();
-    if (!keyword.trim()) return;
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
 
-    setSubmitting(true);
-    setCollecting(false);
+    setLoading(true);
     setError(null);
+    setPreview(null);
+    setAdded(false);
 
     try {
       const res = await fetch("/api/keywords", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          keyword: keyword.trim(),
-          category: category.trim() || null,
-          is_targeted: isTargeted,
-          collect_inline: true, // signal the API to wait for collection
+          keyword: trimmed,
+          collect_inline: true,
         }),
       });
 
       if (res.status === 409) {
-        setError(t("form.error_exists"));
+        setError(t("research.error_exists"));
         return;
       }
       if (!res.ok) {
-        setError(t("form.error_add"));
+        setError(t("research.error"));
         return;
       }
 
-      // If the server collected inline, data is already in the DB.
-      // If not (no API key), the keyword was still created.
-      setKeyword("");
-      setCategory("");
-      setIsTargeted(false);
+      // Keyword was created and data collected inline — now fetch its full metrics
+      const created = await res.json();
+      const metricsRes = await fetch(`/api/keywords?filter=all`);
+      if (metricsRes.ok) {
+        const data = await metricsRes.json();
+        const match = (data.keywords as Keyword[]).find((k) => k.id === created.id);
+        if (match) {
+          setPreview({
+            id: match.id,
+            keyword: match.keyword,
+            tags: match.tags ?? [],
+            demand_supply: match.demand_supply,
+            revenue_est: match.revenue_est,
+            unique_channel_count: match.unique_channel_count,
+            top5_views_sum: match.top5_views_sum,
+          });
+          // Already added to portfolio since POST created the row
+          setAdded(true);
+          onAdded(); // refresh the table
+          setInput("");
+          return;
+        }
+      }
+
+      // Fallback: use whatever we got from the POST response
+      setPreview({
+        id: created.id,
+        keyword: created.keyword,
+        tags: created.tags ?? [],
+        demand_supply: null,
+        revenue_est: null,
+        unique_channel_count: null,
+        top5_views_sum: null,
+      });
+      setAdded(true);
       onAdded();
+      setInput("");
     } catch {
-      setError(t("form.error_network"));
+      setError(t("research.error_network"));
     } finally {
-      setSubmitting(false);
-      setCollecting(false);
+      setLoading(false);
     }
   }
 
-  // Determine button label
-  let buttonLabel = t("form.add");
-  if (submitting) buttonLabel = t("form.collecting");
+  function handleDismiss() {
+    setPreview(null);
+    setAdded(false);
+    setError(null);
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-3 py-3">
-      <input
-        type="text"
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        placeholder={t("form.placeholder_keyword")}
-        className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-64"
-      />
-      <input
-        type="text"
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        placeholder={t("form.placeholder_category")}
-        className="bg-gray-800 border border-gray-700/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-32"
-      />
-      <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={isTargeted}
-          onChange={(e) => setIsTargeted(e.target.checked)}
-          className="rounded border-gray-600"
-        />
-        {t("form.targeted")}
-      </label>
-      <button
-        type="submit"
-        disabled={submitting || !keyword.trim()}
-        className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors min-w-[140px]"
-      >
-        {buttonLabel}
-      </button>
-      {error && <span className="text-red-400 text-sm">{error}</span>}
-      {keyword.trim() && !submitting && (
-        <span className="text-gray-500 text-xs">{t("form.quota_hint")}</span>
+    <div>
+      <form onSubmit={handleResearch} className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">+</span>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setError(null); }}
+            placeholder={t("research.placeholder")}
+            className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg pl-7 pr-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-red-500/50 transition-colors"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !input.trim()}
+          className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm px-4 py-2 rounded-lg transition-colors min-w-[120px]"
+        >
+          {loading ? t("research.collecting") : t("research.button")}
+        </button>
+        {input.trim() && !loading && (
+          <span className="text-gray-600 text-xs">{t("research.quota_hint")}</span>
+        )}
+        {error && <span className="text-red-400 text-sm">{error}</span>}
+      </form>
+
+      {/* Preview card */}
+      {preview && (
+        <div className="mt-3 bg-gray-800/40 border border-gray-700/40 rounded-lg px-4 py-3 flex items-center gap-4 text-sm animate-in fade-in">
+          <span className="font-medium text-white">{preview.keyword}</span>
+          <span className={`tabular-nums font-semibold ${dsColor(preview.demand_supply)}`}>
+            {t("th.demand_supply")} {formatNumber(preview.demand_supply)}
+          </span>
+          <span className="tabular-nums text-gray-400">
+            {t("th.revenue_est")} {formatCurrency(preview.revenue_est)}
+          </span>
+          {preview.tags.length > 0 && (
+            <span className="flex gap-1">
+              {preview.tags.slice(0, 4).map((tag) => (
+                <span key={tag} className="bg-gray-700/60 text-gray-400 px-1.5 py-0.5 rounded text-xs">{tag}</span>
+              ))}
+            </span>
+          )}
+          <span className="ml-auto flex gap-2 items-center">
+            {added && <span className="text-green-400 text-xs">{t("research.added")}</span>}
+            <button
+              onClick={handleDismiss}
+              className="text-gray-500 hover:text-gray-300 text-xs transition-colors"
+            >
+              {t("research.dismiss")}
+            </button>
+          </span>
+        </div>
       )}
-    </form>
+    </div>
   );
 }
 
@@ -416,6 +485,7 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [sort, setSort] = useState<SortState>({ key: "demand_supply", dir: "desc" });
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load saved locale on mount
   useEffect(() => {
@@ -468,7 +538,18 @@ export default function DashboardPage() {
     return sort.dir === "desc" ? " ▼" : " ▲";
   }
 
-  const sortedKeywords = [...keywords].sort((a, b) => {
+  // Client-side search: match against keyword text, category, and auto-tags
+  const searchLower = searchQuery.toLowerCase().trim();
+  const filteredKeywords = searchLower
+    ? keywords.filter((kw) => {
+        if (kw.keyword.toLowerCase().includes(searchLower)) return true;
+        if (kw.category && kw.category.toLowerCase().includes(searchLower)) return true;
+        if (kw.tags && kw.tags.some((tag) => tag.includes(searchLower))) return true;
+        return false;
+      })
+    : keywords;
+
+  const sortedKeywords = [...filteredKeywords].sort((a, b) => {
     const dir = sort.dir === "desc" ? 1 : -1;
     const k = sort.key;
 
@@ -512,12 +593,49 @@ export default function DashboardPage() {
 
       <main className="max-w-6xl mx-auto px-8 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-medium text-gray-200">{t("dash.title")}</h1>
           <span className="text-sm text-gray-500">{keywords.length} {t("dash.keyword_count")}</span>
         </div>
 
-        {/* Filters + Sort */}
+        {/* Search + Research bars */}
+        <div className="flex gap-3 mb-4">
+          {/* Search (filter existing) */}
+          <div className="relative flex-1 max-w-xs">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("search.placeholder")}
+              className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg pl-9 pr-8 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-gray-600 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search result count */}
+        {searchQuery && (
+          <div className="text-xs text-gray-500 mb-3">
+            {t("search.results")} {sortedKeywords.length} / {keywords.length}
+          </div>
+        )}
+
+        {/* Research new keyword */}
+        <div className="mb-5">
+          <ResearchBar onAdded={fetchData} t={t} />
+        </div>
+
+        {/* Filters */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-1">
             {filterButtons.map((btn) => (
@@ -534,7 +652,6 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          <span className="text-xs text-gray-600">{t("sort.label")} {t(`th.${sort.key === "top5_views_sum" ? "top5_views" : sort.key === "demand_supply" ? "demand_supply" : sort.key === "unique_channel_count" ? "unique_channels" : sort.key === "revenue_est" ? "revenue_est" : sort.key === "results_count" ? "results" : sort.key === "last_queried" ? "last_collected" : sort.key}`)}{sortIndicator(sort.key)}</span>
         </div>
 
         {/* Error state */}
@@ -606,11 +723,28 @@ export default function DashboardPage() {
                             <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                               {formatCurrency(kw.revenue_est)}
                             </td>
-                            <td className="py-2 px-4 font-medium text-gray-200">
-                              {kw.keyword}
-                              {kw.is_targeted && (
-                                <span className="ml-2 text-xs text-red-400">*</span>
-                              )}
+                            <td className="py-2 px-4">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-gray-200">
+                                  {kw.keyword}
+                                  {kw.is_targeted && (
+                                    <span className="ml-1 text-xs text-red-400">*</span>
+                                  )}
+                                </span>
+                                {kw.tags && kw.tags.length > 0 && (
+                                  <span className="flex gap-1">
+                                    {kw.tags.slice(0, 3).map((tag) => (
+                                      <span
+                                        key={tag}
+                                        onClick={(e) => { e.stopPropagation(); setSearchQuery(tag); }}
+                                        className="bg-gray-700/50 text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded text-[10px] cursor-pointer transition-colors"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-2 px-3 text-gray-500">
                               {kw.category || "--"}
@@ -666,10 +800,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Add keyword form */}
-            <div className="mt-4">
-              <AddKeywordForm onAdded={fetchData} t={t} />
-            </div>
+            {/* (Research bar is above the table now) */}
           </>
         )}
 

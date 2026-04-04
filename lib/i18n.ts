@@ -76,7 +76,24 @@ const strings: Record<string, Record<Locale, string>> = {
     es: "Error al cargar los datos del dashboard",
   },
 
-  // ── Add keyword form ──
+  // ── Search bar ──
+  "search.placeholder": { en: "Filter keywords...", es: "Filtrar keywords..." },
+  "search.results": { en: "showing", es: "mostrando" },
+  "search.clear": { en: "Clear", es: "Limpiar" },
+
+  // ── Research bar ──
+  "research.placeholder": { en: "Research new keyword...", es: "Investigar nuevo keyword..." },
+  "research.button": { en: "Research", es: "Investigar" },
+  "research.collecting": { en: "Researching...", es: "Investigando..." },
+  "research.add": { en: "+ Add to Portfolio", es: "+ Agregar al Portafolio" },
+  "research.dismiss": { en: "Dismiss", es: "Descartar" },
+  "research.error_exists": { en: "Keyword already exists", es: "El keyword ya existe" },
+  "research.error": { en: "Failed to research keyword", es: "Error al investigar keyword" },
+  "research.error_network": { en: "Network error", es: "Error de red" },
+  "research.quota_hint": { en: "105 quota units", es: "105 unidades de cuota" },
+  "research.added": { en: "Added!", es: "¡Agregado!" },
+
+  // ── Legacy form keys (kept for compat) ──
   "form.placeholder_keyword": { en: "Add keyword...", es: "Agregar keyword..." },
   "form.placeholder_category": { en: "Category", es: "Categoría" },
   "form.targeted": { en: "Targeted", es: "Objetivo" },

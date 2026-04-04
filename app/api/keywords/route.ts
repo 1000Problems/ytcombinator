@@ -8,6 +8,7 @@ interface KeywordRow {
   id: number;
   keyword: string;
   category: string | null;
+  tags: string[];
   is_targeted: boolean;
   is_active: boolean;
   added_at: string;
@@ -76,7 +77,8 @@ export async function GET(request: NextRequest) {
         GROUP BY keyword_id
       )
       SELECT
-        k.id, k.keyword, k.category, k.is_targeted, k.is_active,
+        k.id, k.keyword, k.category, COALESCE(k.tags, '{}') AS tags,
+        k.is_targeted, k.is_active,
         k.added_at, k.last_queried,
         lc.results_count,
         yr.rank_position AS your_rank,
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
         // Block until collection finishes (typically 2-4s)
         const result = await collectSingleKeyword(inserted.id, inserted.keyword, apiKey);
         return NextResponse.json(
-          { ...inserted, collected: result !== null, quota_used: result?.quotaUsed ?? 0 },
+          { ...inserted, collected: result !== null, quota_used: result?.quotaUsed ?? 0, tags: result?.tags ?? [] },
           { status: 201 }
         );
       } else {
