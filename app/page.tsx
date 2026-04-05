@@ -2,12 +2,46 @@
 
 import { useState, useEffect } from "react";
 import { createT, getSavedLocale, saveLocale, Locale } from "@/lib/i18n";
+import { getSavedTheme, saveTheme, applyTheme, Theme } from "@/lib/theme";
+
+function ThemeToggle({ theme, onChange }: { theme: Theme; onChange: (t: Theme) => void }) {
+  return (
+    <button
+      onClick={() => onChange(theme === "light" ? "dark" : "light")}
+      className="p-1.5 rounded transition-colors"
+      style={{ color: "var(--text-tertiary)" }}
+      title={theme === "light" ? "Dark mode" : "Light mode"}
+    >
+      {theme === "light" ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 export default function Home() {
   const [locale, setLocale] = useState<Locale>("es");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     setLocale(getSavedLocale());
+    const saved = getSavedTheme();
+    setTheme(saved);
+    applyTheme(saved);
   }, []);
 
   const t = createT(locale);
@@ -17,8 +51,20 @@ export default function Home() {
     saveLocale(l);
   }
 
+  function handleThemeChange(th: Theme) {
+    setTheme(th);
+    saveTheme(th);
+    applyTheme(th);
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-red-950 text-white font-sans">
+    <div
+      className="min-h-screen font-sans transition-colors"
+      style={{
+        background: `linear-gradient(to bottom right, var(--gradient-from), var(--gradient-via), var(--gradient-to))`,
+        color: "var(--text-primary)",
+      }}
+    >
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
@@ -39,24 +85,30 @@ export default function Home() {
           <div className="flex items-center gap-1 text-xs">
             <button
               onClick={() => handleLocaleChange("es")}
-              className={`px-1.5 py-0.5 rounded transition-colors ${
-                locale === "es" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
-              }`}
+              className="px-1.5 py-0.5 rounded transition-colors"
+              style={{
+                backgroundColor: locale === "es" ? "var(--active-toggle-bg)" : "transparent",
+                color: locale === "es" ? "var(--active-toggle-text)" : "var(--text-muted)",
+              }}
             >
               ES
             </button>
             <button
               onClick={() => handleLocaleChange("en")}
-              className={`px-1.5 py-0.5 rounded transition-colors ${
-                locale === "en" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
-              }`}
+              className="px-1.5 py-0.5 rounded transition-colors"
+              style={{
+                backgroundColor: locale === "en" ? "var(--active-toggle-bg)" : "transparent",
+                color: locale === "en" ? "var(--active-toggle-text)" : "var(--text-muted)",
+              }}
             >
               EN
             </button>
           </div>
+          <ThemeToggle theme={theme} onChange={handleThemeChange} />
           <a
             href="/dashboard"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--text-tertiary)" }}
           >
             {t("nav.dashboard")}
           </a>
@@ -64,7 +116,8 @@ export default function Home() {
             href="https://github.com/1000Problems/ytcombinator"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--text-tertiary)" }}
           >
             GitHub
           </a>
@@ -95,13 +148,13 @@ export default function Home() {
             {t("landing.hero_title_2")}
           </span>
         </h1>
-        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl max-w-2xl mb-10 leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
           {t("landing.hero_sub")}
         </p>
         <div className="flex gap-4">
           <a
             href="#features"
-            className="px-6 py-3 bg-red-600 hover:bg-red-500 rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors"
           >
             {t("landing.cta_features")}
           </a>
@@ -109,13 +162,15 @@ export default function Home() {
             href="https://github.com/1000Problems/ytcombinator"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-6 py-3 border border-gray-700 hover:border-gray-500 rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 rounded-lg font-semibold transition-colors"
+            style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             {t("landing.cta_source")}
           </a>
           <a
             href="/dashboard"
-            className="px-6 py-3 border border-gray-700 hover:border-gray-500 rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 rounded-lg font-semibold transition-colors"
+            style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             {t("landing.cta_dashboard")}
           </a>
@@ -126,7 +181,10 @@ export default function Home() {
       <section id="features" className="max-w-6xl mx-auto px-6 py-16">
         <div className="grid md:grid-cols-3 gap-8">
           {/* Card 1 */}
-          <div className="bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-8 hover:border-red-500/40 transition-colors">
+          <div
+            className="backdrop-blur rounded-2xl p-8 hover:border-red-500/40 transition-colors"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
+          >
             <div className="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center mb-5">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -136,33 +194,39 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-xl font-bold mb-3">{t("landing.card1_title")}</h3>
-            <p className="text-gray-400 leading-relaxed">
+            <p style={{ color: "var(--text-tertiary)" }} className="leading-relaxed">
               {t("landing.card1_desc")}
             </p>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-8 hover:border-orange-500/40 transition-colors">
+          <div
+            className="backdrop-blur rounded-2xl p-8 hover:border-orange-500/40 transition-colors"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
+          >
             <div className="w-12 h-12 bg-orange-600/20 rounded-xl flex items-center justify-center mb-5">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </div>
             <h3 className="text-xl font-bold mb-3">{t("landing.card2_title")}</h3>
-            <p className="text-gray-400 leading-relaxed">
+            <p style={{ color: "var(--text-tertiary)" }} className="leading-relaxed">
               {t("landing.card2_desc")}
             </p>
           </div>
 
           {/* Card 3 */}
-          <div className="bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-8 hover:border-yellow-500/40 transition-colors">
+          <div
+            className="backdrop-blur rounded-2xl p-8 hover:border-yellow-500/40 transition-colors"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
+          >
             <div className="w-12 h-12 bg-yellow-600/20 rounded-xl flex items-center justify-center mb-5">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             </div>
             <h3 className="text-xl font-bold mb-3">{t("landing.card3_title")}</h3>
-            <p className="text-gray-400 leading-relaxed">
+            <p style={{ color: "var(--text-tertiary)" }} className="leading-relaxed">
               {t("landing.card3_desc")}
             </p>
           </div>
@@ -175,7 +239,12 @@ export default function Home() {
           {["Next.js", "TypeScript", "Tailwind CSS", "Neon PostgreSQL", "Vercel", "YouTube API"].map((tech) => (
             <span
               key={tech}
-              className="px-4 py-1.5 text-sm bg-gray-800/60 border border-gray-700/50 rounded-full text-gray-300"
+              className="px-4 py-1.5 text-sm rounded-full"
+              style={{
+                background: "var(--tech-badge-bg)",
+                border: "1px solid var(--tech-badge-border)",
+                color: "var(--tech-badge-text)",
+              }}
             >
               {tech}
             </span>
@@ -184,11 +253,12 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-12 text-gray-500 text-sm">
+      <footer className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>
         A{" "}
         <a
           href="https://www.1000problems.com"
-          className="text-gray-300 hover:text-white transition-colors"
+          className="transition-colors"
+          style={{ color: "var(--text-secondary)" }}
         >
           1000Problems
         </a>{" "}

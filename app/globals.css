@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Theme tokens ─────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+  --page-bg: #ffffff;
+  --page-bg-alt: #f8fafc;
+  --surface: #f1f5f9;
+  --surface-hover: #e2e8f0;
+  --card-bg: #ffffff;
+  --card-bg-subtle: rgba(241, 245, 249, 0.6);
+  --input-bg: rgba(241, 245, 249, 0.8);
+  --nav-border: #e2e8f0;
+  --border: #e2e8f0;
+  --border-subtle: rgba(226, 232, 240, 0.5);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
+  --text-dim: #cbd5e1;
+  --badge-bg: rgba(241, 245, 249, 0.8);
+  --table-header-bg: rgba(248, 250, 252, 0.8);
+  --table-row-hover: rgba(248, 250, 252, 0.6);
+  --table-border: rgba(226, 232, 240, 0.5);
+  --quota-track: #e2e8f0;
+  --skeleton: rgba(226, 232, 240, 0.5);
+  --error-bg: rgba(239, 68, 68, 0.05);
+  --error-border: rgba(239, 68, 68, 0.15);
+  --formula-bg: #f0f4ff;
+  --formula-border: rgba(99, 102, 241, 0.1);
+  --gradient-from: #f8fafc;
+  --gradient-via: #ffffff;
+  --gradient-to: #fff1f2;
+  --hero-gradient-from: #f8fafc;
+  --hero-gradient-via: #ffffff;
+  --hero-gradient-to: #fef2f2;
+  --tech-badge-bg: rgba(241, 245, 249, 0.8);
+  --tech-badge-border: rgba(226, 232, 240, 0.5);
+  --tech-badge-text: #475569;
+  --active-toggle-bg: #e2e8f0;
+  --active-toggle-text: #0f172a;
+  --filter-active-bg: #f1f5f9;
+}
+
+[data-theme="dark"] {
+  --page-bg: #030712;
+  --page-bg-alt: #0f172a;
+  --surface: #1e293b;
+  --surface-hover: #334155;
+  --card-bg: rgba(30, 41, 59, 0.5);
+  --card-bg-subtle: rgba(30, 41, 59, 0.4);
+  --input-bg: rgba(30, 41, 59, 0.6);
+  --nav-border: rgba(30, 41, 59, 0.5);
+  --border: rgba(51, 65, 85, 0.5);
+  --border-subtle: rgba(30, 41, 59, 0.5);
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+  --badge-bg: rgba(51, 65, 85, 0.5);
+  --table-header-bg: rgba(15, 23, 42, 0.3);
+  --table-row-hover: rgba(30, 41, 59, 0.2);
+  --table-border: rgba(30, 41, 59, 0.3);
+  --quota-track: #1e293b;
+  --skeleton: rgba(30, 41, 59, 0.3);
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --formula-bg: #1a1a2e;
+  --formula-border: rgba(255, 255, 255, 0.1);
+  --gradient-from: #030712;
+  --gradient-via: #0f172a;
+  --gradient-to: #450a0a;
+  --hero-gradient-from: #030712;
+  --hero-gradient-via: #0f172a;
+  --hero-gradient-to: #7f1d1d;
+  --tech-badge-bg: rgba(30, 41, 59, 0.6);
+  --tech-badge-border: rgba(51, 65, 85, 0.5);
+  --tech-badge-text: #cbd5e1;
+  --active-toggle-bg: #334155;
+  --active-toggle-text: #f8fafc;
+  --filter-active-bg: #1e293b;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--page-bg);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--page-bg);
+  color: var(--text-primary);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
 }
