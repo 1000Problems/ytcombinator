@@ -193,6 +193,12 @@ const strings: Record<string, Record<Locale, string>> = {
   "login.placeholder": { en: "Password", es: "Contraseña" },
   "login.button": { en: "Sign In", es: "Iniciar Sesión" },
   "login.error": { en: "Invalid password", es: "Contraseña inválida" },
+
+  // ─�� COPPA toggle ──
+  "coppa.kids": { en: "Kids", es: "Niños" },
+  "coppa.family": { en: "Family", es: "Familia" },
+  "coppa.tooltip_kids": { en: "Made for Kids: lower CPM (COPPA restricted)", es: "Para Niños: CPM bajo (restricción COPPA)" },
+  "coppa.tooltip_family": { en: "Family/General: full ad personalization", es: "Familia/General: personalización completa de anuncios" },
 };
 
 /**

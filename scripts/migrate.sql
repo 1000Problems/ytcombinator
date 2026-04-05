@@ -44,6 +44,24 @@ CREATE INDEX IF NOT EXISTS idx_rankings_channel
 -- Auto-generated topic tags (extracted from YouTube result titles)
 ALTER TABLE keywords ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
 
+-- COPPA flag on keywords: 'made_for_kids' (conservative) or 'family_general' (higher CPM)
+ALTER TABLE keywords ADD COLUMN IF NOT EXISTS coppa_flag VARCHAR(20) NOT NULL DEFAULT 'made_for_kids';
+
+-- Category-level CPM benchmarks (editable via future admin UI)
+-- Region multipliers (future): US English=1.00, US Spanish=0.70, UK/CA/AU=0.85, LatAm=0.25, India=0.10, RoW=0.30
+CREATE TABLE IF NOT EXISTS category_cpm (
+  id              SERIAL PRIMARY KEY,
+  category        VARCHAR(50) NOT NULL,
+  coppa_flag      VARCHAR(20) NOT NULL DEFAULT 'made_for_kids',
+  cpm_low         DECIMAL(6,2) NOT NULL,
+  cpm_mid         DECIMAL(6,2) NOT NULL,
+  cpm_high        DECIMAL(6,2) NOT NULL,
+  region          VARCHAR(20) NOT NULL DEFAULT 'us_en',
+  source          TEXT,
+  updated_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(category, coppa_flag, region)
+);
+
 -- Collection job log
 CREATE TABLE IF NOT EXISTS collection_log (
   id              SERIAL PRIMARY KEY,

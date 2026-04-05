@@ -13,6 +13,7 @@ interface Keyword {
   tags: string[];
   is_targeted: boolean;
   is_active: boolean;
+  coppa_flag: string;
   added_at: string;
   last_queried: string | null;
   results_count: number | null;
@@ -22,6 +23,9 @@ interface Keyword {
   unique_channel_count: number | null;
   demand_supply: number | null;
   revenue_est: number | null;
+  revenue_est_low: number | null;
+  revenue_est_high: number | null;
+  cpm_mid: number | null;
 }
 
 /** Result from the research preview (before adding to portfolio). */
@@ -551,6 +555,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [collecting, setCollecting] = useState(false);
   const [collectResult, setCollectResult] = useState<string | null>(null);
+  const [coppaMode, setCoppaMode] = useState<"made_for_kids" | "family_general">("made_for_kids");
   const [theme, setTheme] = useState<Theme>("light");
 
   // Load saved locale + theme on mount
@@ -579,9 +584,12 @@ export default function DashboardPage() {
     try {
       // Map UI filter names to API filter names
       const apiFilter = filter === "starred" ? "targeted" : filter;
-      const filterParam = filter === "all" ? "" : `?filter=${apiFilter}`;
+      const params = new URLSearchParams();
+      if (filter !== "all") params.set("filter", apiFilter);
+      params.set("coppa_flag", coppaMode);
+      const qs = params.toString();
       const [kwRes, logRes] = await Promise.all([
-        fetch(`/api/keywords${filterParam}`),
+        fetch(`/api/keywords?${qs}`),
         fetch("/api/collection-log?limit=5"),
       ]);
 
@@ -598,7 +606,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, coppaMode]);
 
   useEffect(() => {
     fetchData();
@@ -743,6 +751,31 @@ export default function DashboardPage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
+            {/* COPPA toggle */}
+            <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }}>
+              <button
+                onClick={() => setCoppaMode("made_for_kids")}
+                className="px-2 py-1 rounded transition-colors"
+                style={{
+                  background: coppaMode === "made_for_kids" ? "var(--filter-active-bg)" : "transparent",
+                  color: coppaMode === "made_for_kids" ? "var(--text-primary)" : "var(--text-muted)",
+                }}
+                title={t("coppa.tooltip_kids")}
+              >
+                {t("coppa.kids")}
+              </button>
+              <button
+                onClick={() => setCoppaMode("family_general")}
+                className="px-2 py-1 rounded transition-colors"
+                style={{
+                  background: coppaMode === "family_general" ? "var(--filter-active-bg)" : "transparent",
+                  color: coppaMode === "family_general" ? "var(--text-primary)" : "var(--text-muted)",
+                }}
+                title={t("coppa.tooltip_family")}
+              >
+                {t("coppa.family")}
+              </button>
+            </div>
             {collectResult && (
               <span className="text-xs text-green-500">{collectResult}</span>
             )}
@@ -856,7 +889,9 @@ export default function DashboardPage() {
                               {formatNumber(kw.demand_supply)}
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums" style={{ color: "var(--text-tertiary)" }}>
-                              {formatCurrency(kw.revenue_est)}
+                              {kw.revenue_est_low != null && kw.revenue_est_high != null
+                                ? `${formatCurrency(kw.revenue_est_low)} - ${formatCurrency(kw.revenue_est_high)}`
+                                : formatCurrency(kw.revenue_est)}
                             </td>
                             <td className="py-2 px-4">
                               <div className="flex items-center gap-2 flex-wrap">
