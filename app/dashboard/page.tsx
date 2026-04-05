@@ -614,7 +614,18 @@ export default function DashboardPage() {
           </a>
           <LanguageToggle locale={locale} onChange={handleLocaleChange} />
         </div>
-        <QuotaGauge logs={logs} />
+        <div className="flex items-center gap-4">
+          <QuotaGauge logs={logs} />
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              window.location.href = "/";
+            }}
+            className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {t("nav.logout")}
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto px-8 py-6">

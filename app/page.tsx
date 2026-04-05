@@ -55,6 +55,12 @@ export default function Home() {
             </button>
           </div>
           <a
+            href="/dashboard"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            {t("nav.dashboard")}
+          </a>
+          <a
             href="https://github.com/1000Problems/ytcombinator"
             target="_blank"
             rel="noopener noreferrer"
@@ -106,6 +112,12 @@ export default function Home() {
             className="px-6 py-3 border border-gray-700 hover:border-gray-500 rounded-lg font-semibold transition-colors"
           >
             {t("landing.cta_source")}
+          </a>
+          <a
+            href="/dashboard"
+            className="px-6 py-3 border border-gray-700 hover:border-gray-500 rounded-lg font-semibold transition-colors"
+          >
+            {t("landing.cta_dashboard")}
           </a>
         </div>
       </section>

@@ -181,6 +181,18 @@ const strings: Record<string, Record<Locale, string>> = {
     es: "Obtén sugerencias de título, descripción y tags basadas en datos. El análisis SEO ayuda a cada video a alcanzar su máximo potencial.",
   },
   "landing.footer": { en: "project", es: "proyecto" },
+  "landing.cta_dashboard": { en: "Go to Dashboard", es: "Ir al Dashboard" },
+
+  // ── Nav: dashboard link ──
+  "nav.dashboard": { en: "Dashboard", es: "Dashboard" },
+  "nav.logout": { en: "Logout", es: "Cerrar Sesión" },
+
+  // ── Login page ──
+  "login.title": { en: "Sign In", es: "Iniciar Sesión" },
+  "login.subtitle": { en: "Enter the dashboard password to continue", es: "Ingresa la contraseña del dashboard para continuar" },
+  "login.placeholder": { en: "Password", es: "Contraseña" },
+  "login.button": { en: "Sign In", es: "Iniciar Sesión" },
+  "login.error": { en: "Invalid password", es: "Contraseña inválida" },
 };
 
 /**
