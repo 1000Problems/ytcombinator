@@ -35,8 +35,12 @@ interface ResearchPreview {
   tags: string[];
   demand_supply: number | null;
   revenue_est: number | null;
+  revenue_est_low: number | null;
+  revenue_est_high: number | null;
   unique_channel_count: number | null;
   top5_views_sum: number | null;
+  results_count: number | null;
+  cpm_mid: number | null;
 }
 
 interface Ranking {
@@ -338,67 +342,24 @@ function ResearchBar({
         return;
       }
 
-      // Keyword was created and data collected inline — now fetch its full metrics
+      // POST now returns enriched metrics directly after inline collection
       const created = await res.json();
-      const metricsRes = await fetch(`/api/keywords?filter=all`);
-      if (metricsRes.ok) {
-        const data = await metricsRes.json();
-        const match = (data.keywords as Keyword[]).find((k) => k.id === created.id);
-        if (match) {
-          setPreview({
-            id: match.id,
-            keyword: match.keyword,
-            tags: match.tags ?? [],
-            demand_supply: match.demand_supply,
-            revenue_est: match.revenue_est,
-            unique_channel_count: match.unique_channel_count,
-            top5_views_sum: match.top5_views_sum,
-          });
-          // Already added to portfolio since POST created the row
-          setAdded(true);
-          onAdded(); // refresh the table
-          setInput("");
-          return;
-        }
-      }
-
-      // Collection completed but metrics not yet computed in the view —
-      // show a brief "calculating" state, then retry once after a beat.
-      setAdded(true);
-      onAdded();
-      setInput("");
-
-      // Retry after a short delay to let the DB view catch up
-      await new Promise((r) => setTimeout(r, 1500));
-      const retryRes = await fetch(`/api/keywords?filter=all`);
-      if (retryRes.ok) {
-        const retryData = await retryRes.json();
-        const retryMatch = (retryData.keywords as Keyword[]).find((k) => k.id === created.id);
-        if (retryMatch && retryMatch.demand_supply !== null) {
-          setPreview({
-            id: retryMatch.id,
-            keyword: retryMatch.keyword,
-            tags: retryMatch.tags ?? [],
-            demand_supply: retryMatch.demand_supply,
-            revenue_est: retryMatch.revenue_est,
-            unique_channel_count: retryMatch.unique_channel_count,
-            top5_views_sum: retryMatch.top5_views_sum,
-          });
-          onAdded(); // refresh table with updated data
-          return;
-        }
-      }
-
-      // Final fallback: show what we have (keyword was added but data may be partial)
       setPreview({
         id: created.id,
         keyword: created.keyword,
         tags: created.tags ?? [],
-        demand_supply: null,
-        revenue_est: null,
-        unique_channel_count: null,
-        top5_views_sum: null,
+        demand_supply: created.demand_supply ?? null,
+        revenue_est: created.revenue_est ?? null,
+        revenue_est_low: created.revenue_est_low ?? null,
+        revenue_est_high: created.revenue_est_high ?? null,
+        unique_channel_count: created.unique_channel_count ?? null,
+        top5_views_sum: created.top5_views_sum ?? null,
+        results_count: created.results_count ?? null,
+        cpm_mid: created.cpm_mid ?? null,
       });
+      setAdded(true);
+      onAdded();
+      setInput("");
     } catch {
       setError(t("research.error_network"));
     } finally {
@@ -447,8 +408,16 @@ function ResearchBar({
             {t("th.demand_supply")} {formatNumber(preview.demand_supply)}
           </span>
           <span className="tabular-nums" style={{ color: "var(--text-tertiary)" }}>
-            {t("th.revenue_est")} {formatCurrency(preview.revenue_est)}
+            {t("th.revenue_est")}{" "}
+            {preview.revenue_est_low != null && preview.revenue_est_high != null
+              ? `${formatCurrency(preview.revenue_est_low)} - ${formatCurrency(preview.revenue_est_high)}`
+              : formatCurrency(preview.revenue_est)}
           </span>
+          {preview.unique_channel_count != null && (
+            <span className="tabular-nums" style={{ color: "var(--text-muted)" }}>
+              {t("th.unique_channels")} {preview.unique_channel_count}
+            </span>
+          )}
           {preview.tags.length > 0 && (
             <span className="flex gap-1">
               {preview.tags.slice(0, 4).map((tag) => (
@@ -549,7 +518,7 @@ export default function DashboardPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterMode>("all");
+  const [filter, setFilterState] = useState<FilterMode>("all");
   const [sort, setSort] = useState<SortState>({ key: "demand_supply", dir: "desc" });
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -558,16 +527,34 @@ export default function DashboardPage() {
   const [coppaMode, setCoppaMode] = useState<"made_for_kids" | "family_general">("made_for_kids");
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Load saved locale + theme on mount
+  // Load saved locale + theme + filter from URL on mount
   useEffect(() => {
     setLocale(getSavedLocale());
     const saved = getSavedTheme();
     setTheme(saved);
     applyTheme(saved);
+    // Restore filter from URL
+    const params = new URLSearchParams(window.location.search);
+    const urlFilter = params.get("filter") as FilterMode | null;
+    if (urlFilter && ["all", "starred", "pending"].includes(urlFilter)) {
+      setFilterState(urlFilter);
+    }
   }, []);
 
   const t = createT(locale);
   const timeAgo = makeTimeAgo(t);
+
+  function setFilter(f: FilterMode) {
+    setFilterState(f);
+    const params = new URLSearchParams(window.location.search);
+    if (f === "all") {
+      params.delete("filter");
+    } else {
+      params.set("filter", f);
+    }
+    const qs = params.toString();
+    window.history.replaceState({}, "", qs ? `?${qs}` : window.location.pathname);
+  }
 
   function handleLocaleChange(l: Locale) {
     setLocale(l);

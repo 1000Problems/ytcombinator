@@ -180,8 +180,78 @@ export async function POST(request: NextRequest) {
       if (body.collect_inline) {
         // Block until collection finishes (typically 2-4s)
         const result = await collectSingleKeyword(inserted.id, inserted.keyword, apiKey);
+        const collected = result !== null;
+
+        // Compute metrics for this keyword immediately after collection
+        if (collected) {
+          try {
+            const metrics = await queryOne<Record<string, unknown>>(
+              `WITH latest_counts AS (
+                SELECT keyword_id, COUNT(*) AS results_count
+                FROM keyword_rankings
+                WHERE snapshot_date = CURRENT_DATE AND keyword_id = $1
+                GROUP BY keyword_id
+              ),
+              top5_views AS (
+                SELECT keyword_id, SUM(view_count)::bigint AS top5_views_sum
+                FROM (
+                  SELECT keyword_id, view_count,
+                    ROW_NUMBER() OVER (PARTITION BY keyword_id ORDER BY rank_position ASC) AS rn
+                  FROM keyword_rankings
+                  WHERE snapshot_date = CURRENT_DATE AND keyword_id = $1
+                ) ranked
+                WHERE rn <= 5
+                GROUP BY keyword_id
+              ),
+              unique_channels AS (
+                SELECT keyword_id, COUNT(DISTINCT channel_id) AS unique_channel_count
+                FROM keyword_rankings
+                WHERE snapshot_date = CURRENT_DATE AND keyword_id = $1
+                GROUP BY keyword_id
+              )
+              SELECT
+                k.id, k.keyword, k.category, COALESCE(k.tags, '{}') AS tags,
+                k.is_targeted, k.is_active, k.coppa_flag,
+                lc.results_count,
+                tv.top5_views_sum,
+                uc.unique_channel_count,
+                CASE WHEN uc.unique_channel_count > 0
+                  THEN ROUND((tv.top5_views_sum::numeric / 5) / uc.unique_channel_count, 0)
+                  ELSE NULL END AS demand_supply,
+                CASE WHEN tv.top5_views_sum IS NOT NULL AND cc.cpm_low IS NOT NULL
+                  THEN ROUND(tv.top5_views_sum::numeric * cc.cpm_low / 1000, 2)
+                  ELSE NULL END AS revenue_est_low,
+                CASE WHEN tv.top5_views_sum IS NOT NULL AND cc.cpm_mid IS NOT NULL
+                  THEN ROUND(tv.top5_views_sum::numeric * cc.cpm_mid / 1000, 2)
+                  WHEN tv.top5_views_sum IS NOT NULL
+                  THEN ROUND(tv.top5_views_sum::numeric * 5 / 1000, 2)
+                  ELSE NULL END AS revenue_est,
+                CASE WHEN tv.top5_views_sum IS NOT NULL AND cc.cpm_high IS NOT NULL
+                  THEN ROUND(tv.top5_views_sum::numeric * cc.cpm_high / 1000, 2)
+                  ELSE NULL END AS revenue_est_high,
+                cc.cpm_mid
+              FROM keywords k
+              LEFT JOIN latest_counts lc ON lc.keyword_id = k.id
+              LEFT JOIN top5_views tv ON tv.keyword_id = k.id
+              LEFT JOIN unique_channels uc ON uc.keyword_id = k.id
+              LEFT JOIN category_cpm cc ON cc.category = k.category AND cc.coppa_flag = k.coppa_flag AND cc.region = 'us_en'
+              WHERE k.id = $1`,
+              [inserted.id]
+            );
+
+            if (metrics) {
+              return NextResponse.json(
+                { ...metrics, collected: true, quota_used: result?.quotaUsed ?? 0 },
+                { status: 201 }
+              );
+            }
+          } catch {
+            // Fall through to basic response if metrics query fails
+          }
+        }
+
         return NextResponse.json(
-          { ...inserted, collected: result !== null, quota_used: result?.quotaUsed ?? 0, tags: result?.tags ?? [] },
+          { ...inserted, collected, quota_used: result?.quotaUsed ?? 0, tags: result?.tags ?? [] },
           { status: 201 }
         );
       } else {
