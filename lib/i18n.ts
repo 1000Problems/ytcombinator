@@ -33,6 +33,7 @@ const strings: Record<string, Record<Locale, string>> = {
   "th.revenue_est": { en: "Revenue ($)", es: "Ingresos ($)" },
   "th.results": { en: "Results", es: "Resultados" },
   "th.last_collected": { en: "Last Collected", es: "Últ. Recolección" },
+  "th.annual_value": { en: "Annual ($)", es: "Anual ($)" },
   "th.actions": { en: "Actions", es: "Acciones" },
 
   // ── Status badges ──
@@ -54,8 +55,12 @@ const strings: Record<string, Record<Locale, string>> = {
     es: "Prom. vistas top-5 ÷ canales únicos. Mayor = menos competencia",
   },
   "tip.revenue_est": {
-    en: "Top-5 views × $5 CPM ÷ 1000",
-    es: "Vistas top-5 × $5 CPM ÷ 1000",
+    en: "Top-5 views × region CPM ÷ 1000",
+    es: "Vistas top-5 × CPM regional ÷ 1000",
+  },
+  "tip.annual_value": {
+    en: "Monthly revenue estimate × 12",
+    es: "Estimación de ingresos mensual × 12",
   },
 
   // ── Actions ──
@@ -195,10 +200,24 @@ const strings: Record<string, Record<Locale, string>> = {
   "login.error": { en: "Invalid password", es: "Contraseña inválida" },
 
   // ─�� COPPA toggle ──
+  // ── Region toggle ──
+  "region.us_en": { en: "US English", es: "US Inglés" },
+  "region.us_es": { en: "US Spanish", es: "US Español" },
+  "region.latam_es": { en: "LATAM", es: "LATAM" },
+  "region.tooltip": {
+    en: "Select ad market region — affects CPM rates used for revenue estimates",
+    es: "Selecciona la región del mercado publicitario — afecta las tasas CPM usadas para estimaciones de ingresos",
+  },
+
   "coppa.kids": { en: "Kids", es: "Niños" },
   "coppa.family": { en: "Family", es: "Familia" },
   "coppa.tooltip_kids": { en: "Made for Kids: lower CPM (COPPA restricted)", es: "Para Niños: CPM bajo (restricción COPPA)" },
   "coppa.tooltip_family": { en: "Family/General: full ad personalization", es: "Familia/General: personalización completa de anuncios" },
+
+  // ── Portfolio valuation ──
+  "valuation.annual_revenue": { en: "Est. Annual Revenue", es: "Ingresos Anuales Est." },
+  "valuation.portfolio_value": { en: "Portfolio Valuation (2.5×)", es: "Valuación del Portafolio (2.5×)" },
+  "valuation.methodology": { en: "Based on annual revenue × 2.5 multiple", es: "Basado en ingresos anuales × múltiplo de 2.5" },
 };
 
 /**

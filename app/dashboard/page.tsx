@@ -26,6 +26,7 @@ interface Keyword {
   revenue_est_low: number | null;
   revenue_est_high: number | null;
   cpm_mid: number | null;
+  annual_value: number | null;
 }
 
 /** Result from the research preview (before adding to portfolio). */
@@ -64,7 +65,7 @@ interface LogEntry {
 }
 
 type FilterMode = "all" | "starred" | "pending";
-type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "results_count" | "last_queried";
+type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "annual_value" | "results_count" | "last_queried";
 type SortDir = "asc" | "desc";
 interface SortState { key: SortKey; dir: SortDir }
 
@@ -525,6 +526,7 @@ export default function DashboardPage() {
   const [collecting, setCollecting] = useState(false);
   const [collectResult, setCollectResult] = useState<string | null>(null);
   const [coppaMode, setCoppaMode] = useState<"made_for_kids" | "family_general">("made_for_kids");
+  const [region, setRegionState] = useState<"us_en" | "us_es" | "latam_es">("us_en");
   const [theme, setTheme] = useState<Theme>("light");
 
   // Load saved locale + theme + filter from URL on mount
@@ -539,6 +541,10 @@ export default function DashboardPage() {
     if (urlFilter && ["all", "starred", "pending"].includes(urlFilter)) {
       setFilterState(urlFilter);
     }
+    const urlRegion = params.get("region") as "us_en" | "us_es" | "latam_es" | null;
+    if (urlRegion && ["us_en", "us_es", "latam_es"].includes(urlRegion)) {
+      setRegionState(urlRegion);
+    }
   }, []);
 
   const t = createT(locale);
@@ -551,6 +557,18 @@ export default function DashboardPage() {
       params.delete("filter");
     } else {
       params.set("filter", f);
+    }
+    const qs = params.toString();
+    window.history.replaceState({}, "", qs ? `?${qs}` : window.location.pathname);
+  }
+
+  function setRegion(r: "us_en" | "us_es" | "latam_es") {
+    setRegionState(r);
+    const params = new URLSearchParams(window.location.search);
+    if (r === "us_en") {
+      params.delete("region");
+    } else {
+      params.set("region", r);
     }
     const qs = params.toString();
     window.history.replaceState({}, "", qs ? `?${qs}` : window.location.pathname);
@@ -574,6 +592,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams();
       if (filter !== "all") params.set("filter", apiFilter);
       params.set("coppa_flag", coppaMode);
+      params.set("region", region);
       const qs = params.toString();
       const [kwRes, logRes] = await Promise.all([
         fetch(`/api/keywords?${qs}`),
@@ -593,7 +612,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter, coppaMode]);
+  }, [filter, coppaMode, region]);
 
   useEffect(() => {
     fetchData();
@@ -738,6 +757,22 @@ export default function DashboardPage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
+            {/* Region toggle */}
+            <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }} title={t("region.tooltip")}>
+              {([["us_en", "region.us_en"], ["us_es", "region.us_es"], ["latam_es", "region.latam_es"]] as const).map(([val, labelKey]) => (
+                <button
+                  key={val}
+                  onClick={() => setRegion(val)}
+                  className="px-2 py-1 rounded transition-colors"
+                  style={{
+                    background: region === val ? "var(--filter-active-bg)" : "transparent",
+                    color: region === val ? "var(--text-primary)" : "var(--text-muted)",
+                  }}
+                >
+                  {t(labelKey)}
+                </button>
+              ))}
+            </div>
             {/* COPPA toggle */}
             <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }}>
               <button
@@ -799,6 +834,28 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Portfolio Valuation Card — visible only in Starred view */}
+        {!loading && !error && filter === "starred" && keywords.length > 0 && (() => {
+          const portfolioAnnual = keywords
+            .filter((kw) => kw.is_targeted && kw.annual_value != null)
+            .reduce((sum, kw) => sum + Number(kw.annual_value), 0);
+          const portfolioValuation = portfolioAnnual * 2.5;
+          return (
+            <div className="rounded-lg px-5 py-4 mb-4 flex items-center gap-6 text-sm" style={{ background: "var(--card-bg-subtle)", border: "1px solid var(--border-subtle)" }}>
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>{t("valuation.annual_revenue")}</span>
+                <span className="ml-2 font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{formatCurrency(portfolioAnnual)}</span>
+              </div>
+              <div style={{ width: 1, height: 24, background: "var(--border)" }} />
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>{t("valuation.portfolio_value")}</span>
+                <span className="ml-2 font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{formatCurrency(portfolioValuation)}</span>
+              </div>
+              <span className="text-xs ml-auto" style={{ color: "var(--text-dim)" }}>{t("valuation.methodology")}</span>
+            </div>
+          );
+        })()}
+
         {/* Keyword table */}
         {!loading && !error && (
           <>
@@ -818,6 +875,7 @@ export default function DashboardPage() {
                       <th className="text-center py-2.5 px-2 w-8">★</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" title={t("tip.demand_supply")} onClick={() => toggleSort("demand_supply")}>{t("th.demand_supply")}{sortIndicator("demand_supply")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" title={t("tip.revenue_est")} onClick={() => toggleSort("revenue_est")}>{t("th.revenue_est")}{sortIndicator("revenue_est")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" title={t("tip.annual_value")} onClick={() => toggleSort("annual_value")}>{t("th.annual_value")}{sortIndicator("annual_value")}</th>
                       <th className="text-left py-2.5 px-4 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("keyword")}>{t("th.keyword")}{sortIndicator("keyword")}</th>
                       <th className="text-left py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("category")}>{t("th.category")}{sortIndicator("category")}</th>
                       <th className="text-center py-2.5 px-3">{t("th.status")}</th>
@@ -880,6 +938,9 @@ export default function DashboardPage() {
                                 ? `${formatCurrency(kw.revenue_est_low)} - ${formatCurrency(kw.revenue_est_high)}`
                                 : formatCurrency(kw.revenue_est)}
                             </td>
+                            <td className="py-2 px-3 text-right tabular-nums" style={{ color: "var(--text-tertiary)" }}>
+                              {formatCurrency(kw.annual_value)}
+                            </td>
                             <td className="py-2 px-4">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
@@ -925,7 +986,7 @@ export default function DashboardPage() {
                           </tr>
                           {isExpanded && (
                             <tr key={`${kw.id}-preview`}>
-                              <td colSpan={12} style={{ background: "var(--table-header-bg)", borderBottom: "1px solid var(--table-border)" }}>
+                              <td colSpan={13} style={{ background: "var(--table-header-bg)", borderBottom: "1px solid var(--table-border)" }}>
                                 <KeywordPreview keywordId={kw.id} t={t} />
                               </td>
                             </tr>

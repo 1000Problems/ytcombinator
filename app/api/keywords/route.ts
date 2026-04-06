@@ -27,6 +27,7 @@ interface KeywordWithRank extends KeywordRow {
   revenue_est_low: number | null;
   revenue_est_high: number | null;
   cpm_mid: number | null;
+  annual_value: number | null;
 }
 
 // ---- GET /api/keywords ------------------------------------------------------------------------------------------------
@@ -37,6 +38,9 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get("category");
   const channelId = searchParams.get("channel_id") || process.env.MY_CHANNEL_ID;
   const coppaOverride = searchParams.get("coppa_flag"); // "made_for_kids" | "family_general" — overrides per-keyword flag for CPM lookup
+  const VALID_REGIONS = ["us_en", "us_es", "latam_es"] as const;
+  const regionParam = searchParams.get("region") || "us_en";
+  const region = VALID_REGIONS.includes(regionParam as typeof VALID_REGIONS[number]) ? regionParam : "us_en";
 
   try {
     // Single CTE query: keywords + latest ranking count + your rank + 7d ago rank
@@ -109,25 +113,30 @@ export async function GET(request: NextRequest) {
         CASE WHEN tv.top5_views_sum IS NOT NULL AND cc.cpm_high IS NOT NULL
           THEN ROUND(tv.top5_views_sum::numeric * cc.cpm_high / 1000, 2)
           ELSE NULL END AS revenue_est_high,
-        cc.cpm_mid
+        cc.cpm_mid,
+        CASE WHEN tv.top5_views_sum IS NOT NULL AND cc.cpm_mid IS NOT NULL
+          THEN ROUND(tv.top5_views_sum::numeric * cc.cpm_mid / 1000 * 12, 2)
+          WHEN tv.top5_views_sum IS NOT NULL
+          THEN ROUND(tv.top5_views_sum::numeric * 5 / 1000 * 12, 2)
+          ELSE NULL END AS annual_value
       FROM keywords k
       LEFT JOIN latest_counts lc ON lc.keyword_id = k.id
       LEFT JOIN your_rank yr ON yr.keyword_id = k.id
       LEFT JOIN your_rank_7d yr7 ON yr7.keyword_id = k.id
       LEFT JOIN top5_views tv ON tv.keyword_id = k.id
       LEFT JOIN unique_channels uc ON uc.keyword_id = k.id
-      LEFT JOIN category_cpm cc ON cc.category = k.category AND cc.coppa_flag = ${coppaOverride ? "$2" : "k.coppa_flag"} AND cc.region = 'us_en'
+      LEFT JOIN category_cpm cc ON cc.category = k.category AND cc.coppa_flag = ${coppaOverride ? "$3" : "k.coppa_flag"} AND cc.region = $2
       WHERE 1=1
         ${filter === "targeted" ? "AND k.is_targeted = TRUE" : ""}
         ${filter === "active" ? "AND k.is_active = TRUE" : ""}
         ${filter === "inactive" ? "AND k.is_active = FALSE" : ""}
         ${filter === "pending" ? "AND k.last_queried IS NULL" : ""}
-        ${category ? `AND k.category = $${coppaOverride ? 3 : 2}` : ""}
+        ${category ? `AND k.category = $${coppaOverride ? 4 : 3}` : ""}
       ORDER BY
         k.is_targeted DESC,
         k.last_queried ASC NULLS FIRST,
         k.added_at DESC`,
-      [channelId || "", ...(coppaOverride ? [coppaOverride] : []), ...(category ? [category] : [])]
+      [channelId || "", region, ...(coppaOverride ? [coppaOverride] : []), ...(category ? [category] : [])]
     );
 
     return NextResponse.json({ keywords: rows, count: rows.length });
@@ -243,9 +252,9 @@ export async function POST(request: NextRequest) {
               LEFT JOIN latest_counts lc ON lc.keyword_id = k.id
               LEFT JOIN top5_views tv ON tv.keyword_id = k.id
               LEFT JOIN unique_channels uc ON uc.keyword_id = k.id
-              LEFT JOIN category_cpm cc ON cc.category = k.category AND cc.coppa_flag = k.coppa_flag AND cc.region = 'us_en'
+              LEFT JOIN category_cpm cc ON cc.category = k.category AND cc.coppa_flag = k.coppa_flag AND cc.region = $2
               WHERE k.id = $1`,
-              [inserted.id]
+              [inserted.id, body.region || "us_en"]
             );
 
             if (metrics) {

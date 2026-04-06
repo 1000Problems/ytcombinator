@@ -36,6 +36,44 @@ const BENCHMARKS: [string, string, number, number, number, string][] = [
   ["adventure",    "family_general", 3.00, 5.00,  7.00, "us_en"],
   ["spanish",      "family_general", 1.50, 2.75,  4.00, "us_en"],
   ["compilation",  "family_general", 3.00, 4.50,  6.00, "us_en"],
+
+  // ── US Spanish (0.70x of us_en) ─────────────────────────────────────
+  ["bedtime",      "made_for_kids", 0.35, 0.88, 1.40, "us_es"],
+  ["fairy-tales",  "made_for_kids", 0.21, 0.63, 1.05, "us_es"],
+  ["moral",        "made_for_kids", 0.70, 1.40, 2.10, "us_es"],
+  ["educational",  "made_for_kids", 1.05, 1.58, 2.10, "us_es"],
+  ["animals",      "made_for_kids", 0.35, 0.88, 1.40, "us_es"],
+  ["adventure",    "made_for_kids", 0.21, 0.63, 1.05, "us_es"],
+  ["spanish",      "made_for_kids", 0.11, 0.34, 0.56, "us_es"],
+  ["compilation",  "made_for_kids", 0.18, 0.44, 0.70, "us_es"],
+
+  ["bedtime",      "family_general", 2.80, 4.20,  5.60, "us_es"],
+  ["fairy-tales",  "family_general", 2.10, 3.50,  4.90, "us_es"],
+  ["moral",        "family_general", 4.20, 6.30,  8.40, "us_es"],
+  ["educational",  "family_general", 7.00, 12.25, 17.50, "us_es"],
+  ["animals",      "family_general", 2.80, 4.20,  5.60, "us_es"],
+  ["adventure",    "family_general", 2.10, 3.50,  4.90, "us_es"],
+  ["spanish",      "family_general", 1.05, 1.93,  2.80, "us_es"],
+  ["compilation",  "family_general", 2.10, 3.15,  4.20, "us_es"],
+
+  // ── LATAM Spanish (0.25x of us_en) ──────────────────────────────────
+  ["bedtime",      "made_for_kids", 0.13, 0.31, 0.50, "latam_es"],
+  ["fairy-tales",  "made_for_kids", 0.08, 0.23, 0.38, "latam_es"],
+  ["moral",        "made_for_kids", 0.25, 0.50, 0.75, "latam_es"],
+  ["educational",  "made_for_kids", 0.38, 0.56, 0.75, "latam_es"],
+  ["animals",      "made_for_kids", 0.13, 0.31, 0.50, "latam_es"],
+  ["adventure",    "made_for_kids", 0.08, 0.23, 0.38, "latam_es"],
+  ["spanish",      "made_for_kids", 0.04, 0.12, 0.20, "latam_es"],
+  ["compilation",  "made_for_kids", 0.06, 0.16, 0.25, "latam_es"],
+
+  ["bedtime",      "family_general", 1.00, 1.50,  2.00, "latam_es"],
+  ["fairy-tales",  "family_general", 0.75, 1.25,  1.75, "latam_es"],
+  ["moral",        "family_general", 1.50, 2.25,  3.00, "latam_es"],
+  ["educational",  "family_general", 2.50, 4.38,  6.25, "latam_es"],
+  ["animals",      "family_general", 1.00, 1.50,  2.00, "latam_es"],
+  ["adventure",    "family_general", 0.75, 1.25,  1.75, "latam_es"],
+  ["spanish",      "family_general", 0.38, 0.69,  1.00, "latam_es"],
+  ["compilation",  "family_general", 0.75, 1.13,  1.50, "latam_es"],
 ];
 
 const SOURCE = "lenostube.com, pastory.app, upgrowth.in, notelm.ai, kidscreen.com (April 2026)";
