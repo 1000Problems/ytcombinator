@@ -66,7 +66,7 @@ interface LogEntry {
 }
 
 type FilterMode = "all" | "starred" | "pending" | "today";
-type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "annual_value" | "results_count" | "last_queried";
+type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "annual_value" | "results_count" | "last_queried" | "added_at";
 type SortDir = "asc" | "desc";
 interface SortState { key: SortKey; dir: SortDir }
 
@@ -513,7 +513,6 @@ export default function DashboardPage() {
   const [collecting, setCollecting] = useState(false);
   const [collectResult, setCollectResult] = useState<string | null>(null);
   const [coppaMode, setCoppaMode] = useState<"made_for_kids" | "family_general">("made_for_kids");
-  const [region, setRegionState] = useState<"us_en" | "us_es" | "latam_es">("us_en");
   const [theme, setTheme] = useState<Theme>("light");
 
   // Load saved locale + theme + filter from URL on mount
@@ -528,10 +527,6 @@ export default function DashboardPage() {
     if (urlFilter && ["all", "starred", "pending", "today"].includes(urlFilter)) {
       setFilterState(urlFilter);
     }
-    const urlRegion = params.get("region") as "us_en" | "us_es" | "latam_es" | null;
-    if (urlRegion && ["us_en", "us_es", "latam_es"].includes(urlRegion)) {
-      setRegionState(urlRegion);
-    }
   }, []);
 
   const t = createT(locale);
@@ -544,18 +539,6 @@ export default function DashboardPage() {
       params.delete("filter");
     } else {
       params.set("filter", f);
-    }
-    const qs = params.toString();
-    window.history.replaceState({}, "", qs ? `?${qs}` : window.location.pathname);
-  }
-
-  function setRegion(r: "us_en" | "us_es" | "latam_es") {
-    setRegionState(r);
-    const params = new URLSearchParams(window.location.search);
-    if (r === "us_en") {
-      params.delete("region");
-    } else {
-      params.set("region", r);
     }
     const qs = params.toString();
     window.history.replaceState({}, "", qs ? `?${qs}` : window.location.pathname);
@@ -579,7 +562,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams();
       if (filter !== "all") params.set("filter", apiFilter);
       params.set("coppa_flag", coppaMode);
-      params.set("region", region);
+      params.set("region", "us_en");
       const qs = params.toString();
       const [kwRes, logRes] = await Promise.all([
         fetch(`/api/keywords?${qs}`),
@@ -599,7 +582,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter, coppaMode, region]);
+  }, [filter, coppaMode]);
 
   useEffect(() => {
     fetchData();
@@ -637,9 +620,9 @@ export default function DashboardPage() {
     if (k === "category") {
       return dir * ((b.category ?? "").localeCompare(a.category ?? ""));
     }
-    if (k === "last_queried") {
-      const aT = a.last_queried ? new Date(a.last_queried).getTime() : 0;
-      const bT = b.last_queried ? new Date(b.last_queried).getTime() : 0;
+    if (k === "last_queried" || k === "added_at") {
+      const aT = a[k] ? new Date(a[k]!).getTime() : 0;
+      const bT = b[k] ? new Date(b[k]!).getTime() : 0;
       return dir * (bT - aT);
     }
     // Numeric columns
@@ -752,22 +735,6 @@ export default function DashboardPage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            {/* Region toggle */}
-            <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }} title={t("region.tooltip")}>
-              {([["us_en", "region.us_en"], ["us_es", "region.us_es"], ["latam_es", "region.latam_es"]] as const).map(([val, labelKey]) => (
-                <button
-                  key={val}
-                  onClick={() => setRegion(val)}
-                  className="px-2 py-1 rounded transition-colors"
-                  style={{
-                    background: region === val ? "var(--filter-active-bg)" : "transparent",
-                    color: region === val ? "var(--text-primary)" : "var(--text-muted)",
-                  }}
-                >
-                  {t(labelKey)}
-                </button>
-              ))}
-            </div>
             {/* COPPA toggle */}
             <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }}>
               <button
@@ -878,6 +845,7 @@ export default function DashboardPage() {
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("top5_views_sum")}>{t("th.top5_views")}{sortIndicator("top5_views_sum")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" title={t("tip.unique_channels")} onClick={() => toggleSort("unique_channel_count")}>{t("th.unique_channels")}{sortIndicator("unique_channel_count")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("results_count")}>{t("th.results")}{sortIndicator("results_count")}</th>
+                      <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("added_at")}>{t("th.added_at")}{sortIndicator("added_at")}</th>
                       <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("last_queried")}>{t("th.last_collected")}{sortIndicator("last_queried")}</th>
                     </tr>
                   </thead>
@@ -976,12 +944,15 @@ export default function DashboardPage() {
                               {kw.results_count ?? "--"}
                             </td>
                             <td className="py-2 px-3 text-right" style={{ color: "var(--text-muted)" }}>
+                              {kw.added_at ? new Date(kw.added_at).toLocaleDateString() : "--"}
+                            </td>
+                            <td className="py-2 px-3 text-right" style={{ color: "var(--text-muted)" }}>
                               {timeAgo(kw.last_queried)}
                             </td>
                           </tr>
                           {isExpanded && (
                             <tr key={`${kw.id}-preview`}>
-                              <td colSpan={13} style={{ background: "var(--table-header-bg)", borderBottom: "1px solid var(--table-border)" }}>
+                              <td colSpan={14} style={{ background: "var(--table-header-bg)", borderBottom: "1px solid var(--table-border)" }}>
                                 <KeywordPreview keywordId={kw.id} t={t} />
                               </td>
                             </tr>

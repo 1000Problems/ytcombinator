@@ -33,6 +33,7 @@ const strings: Record<string, Record<Locale, string>> = {
   "th.demand_supply": { en: "Opportunity", es: "Oportunidad" },
   "th.revenue_est": { en: "Revenue ($)", es: "Ingresos ($)" },
   "th.results": { en: "Results", es: "Resultados" },
+  "th.added_at": { en: "Added", es: "Agregado" },
   "th.last_collected": { en: "Last Collected", es: "Últ. Recolección" },
   "th.annual_value": { en: "Annual ($)", es: "Anual ($)" },
   "th.actions": { en: "Actions", es: "Acciones" },
@@ -201,15 +202,6 @@ const strings: Record<string, Record<Locale, string>> = {
   "login.error": { en: "Invalid password", es: "Contraseña inválida" },
 
   // ─�� COPPA toggle ──
-  // ── Region toggle ──
-  "region.us_en": { en: "US English", es: "US Inglés" },
-  "region.us_es": { en: "US Spanish", es: "US Español" },
-  "region.latam_es": { en: "LATAM", es: "LATAM" },
-  "region.tooltip": {
-    en: "Select ad market region — affects CPM rates used for revenue estimates",
-    es: "Selecciona la región del mercado publicitario — afecta las tasas CPM usadas para estimaciones de ingresos",
-  },
-
   "coppa.kids": { en: "Kids", es: "Niños" },
   "coppa.family": { en: "Family", es: "Familia" },
   "coppa.tooltip_kids": { en: "Made for Kids: lower CPM (COPPA restricted)", es: "Para Niños: CPM bajo (restricción COPPA)" },

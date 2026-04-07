@@ -278,7 +278,6 @@ export default function AnalyzePage() {
   const [locale, setLocale] = useState<Locale>("es");
   const [theme, setTheme] = useState<Theme>("light");
   const [url, setUrl] = useState("");
-  const [region, setRegion] = useState<"us_en" | "us_es" | "latam_es">("us_en");
   const [coppaMode, setCoppaMode] = useState<"made_for_kids" | "family_general">("made_for_kids");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -336,7 +335,7 @@ export default function AnalyzePage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed, region, coppa_flag: coppaMode }),
+        body: JSON.stringify({ url: trimmed, region: "us_en", coppa_flag: coppaMode }),
       });
 
       if (res.status === 400) {
@@ -445,25 +444,8 @@ export default function AnalyzePage() {
             </button>
           </div>
 
-          {/* Region + COPPA toggles */}
+          {/* COPPA toggle */}
           <div className="flex items-center gap-2 mt-3">
-            {/* Region toggle */}
-            <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }} title={t("region.tooltip")}>
-              {([["us_en", "region.us_en"], ["us_es", "region.us_es"], ["latam_es", "region.latam_es"]] as const).map(([val, labelKey]) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setRegion(val)}
-                  className="px-2 py-1 rounded transition-colors"
-                  style={{
-                    background: region === val ? "var(--filter-active-bg)" : "transparent",
-                    color: region === val ? "var(--text-primary)" : "var(--text-muted)",
-                  }}
-                >
-                  {t(labelKey)}
-                </button>
-              ))}
-            </div>
             {/* COPPA toggle */}
             <div className="flex items-center gap-1 text-xs rounded-lg px-1 py-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--border)" }}>
               <button

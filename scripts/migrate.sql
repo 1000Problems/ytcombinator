@@ -44,6 +44,9 @@ CREATE INDEX IF NOT EXISTS idx_rankings_channel
 -- Auto-generated topic tags (extracted from YouTube result titles)
 ALTER TABLE keywords ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
 
+-- Backfill any NULL added_at values with today's date
+UPDATE keywords SET added_at = NOW() WHERE added_at IS NULL;
+
 -- COPPA flag on keywords: 'made_for_kids' (conservative) or 'family_general' (higher CPM)
 ALTER TABLE keywords ADD COLUMN IF NOT EXISTS coppa_flag VARCHAR(20) NOT NULL DEFAULT 'made_for_kids';
 
