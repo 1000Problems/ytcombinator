@@ -2,6 +2,30 @@
 
 A comprehensive YouTube channel automation suite — scheduling, analytics, content optimization, and thumbnail management in one dashboard.
 
+## Before Implementing Any TASK
+
+1. **Read the full TASK spec** — understand scope, acceptance criteria, and the Do Not Change section.
+2. **Query LightRAG** for cross-project context before touching shared patterns:
+   ```bash
+   curl -X POST http://localhost:9621/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "architectural context for [feature being implemented]", "mode": "hybrid"}'
+   ```
+3. **Stay in scope.** Only modify files and components explicitly listed in the TASK spec. If you discover something that needs changing outside the spec, create a new VybePM task — do NOT fix it inline.
+4. **Verify before committing.** Run `npm run build`, confirm zero type errors, and check that nothing outside the TASK scope changed with `git diff`.
+
+### Protected Areas (global — TASK specs may add more)
+
+These components are stable and must NOT be modified unless the TASK spec explicitly names them:
+
+- `lib/collector.ts` — YouTube API collection logic and quota management
+- `lib/quota-budget.ts` — budget constants (DAILY_LIMIT, SEARCH_COST, COLLECTOR_BUDGET, MAX_KEYWORDS_PER_RUN)
+- `lib/db.ts` — Neon connection pool
+- `app/api/keywords/route.ts` — POST handler with collect_inline flow (complex, easy to break)
+- `scripts/collect.ts` — cron collection script
+- `.github/workflows/collect.yml` — daily collection cron
+- Database schema in `scripts/migrate.sql` — additive changes only (new columns/tables), never drop or rename existing
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router, TypeScript)
