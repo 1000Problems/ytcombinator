@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createT, getSavedLocale, saveLocale, Locale } from "@/lib/i18n";
 import { getSavedTheme, saveTheme, applyTheme, Theme } from "@/lib/theme";
+import { formatCurrency, formatNumber as formatNum } from "@/lib/format";
 
 // ---- Types ------------------------------------------------------------------------------------------------------------------------
 
@@ -64,7 +65,7 @@ interface LogEntry {
   duration_ms: number | null;
 }
 
-type FilterMode = "all" | "starred" | "pending";
+type FilterMode = "all" | "starred" | "pending" | "today";
 type SortKey = "keyword" | "category" | "your_rank" | "top5_views_sum" | "unique_channel_count" | "demand_supply" | "revenue_est" | "annual_value" | "results_count" | "last_queried";
 type SortDir = "asc" | "desc";
 interface SortState { key: SortKey; dir: SortDir }
@@ -106,22 +107,8 @@ function rankDelta(current: number | null, weekAgo: number | null, t: (k: string
   return <span style={{ color: "var(--text-secondary)" }}>{current} <span style={{ color: "var(--text-muted)" }}>--</span></span>;
 }
 
-function formatNumber(n: number | string | null): string {
-  if (n === null || n === undefined) return "--";
-  const v = Number(n);
-  if (isNaN(v)) return "--";
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
-  return String(v);
-}
-
-function formatCurrency(n: number | string | null): string {
-  if (n === null || n === undefined) return "--";
-  const v = Number(n);
-  if (isNaN(v)) return "--";
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
-  return `$${v.toFixed(0)}`;
-}
+// formatCurrency and formatNumber imported from @/lib/format
+const formatNumber = formatNum;
 
 /** Color code the D/S ratio: green = good opportunity, red = saturated */
 function dsColor(ds: number | string | null): string {
@@ -538,7 +525,7 @@ export default function DashboardPage() {
     // Restore filter from URL
     const params = new URLSearchParams(window.location.search);
     const urlFilter = params.get("filter") as FilterMode | null;
-    if (urlFilter && ["all", "starred", "pending"].includes(urlFilter)) {
+    if (urlFilter && ["all", "starred", "pending", "today"].includes(urlFilter)) {
       setFilterState(urlFilter);
     }
     const urlRegion = params.get("region") as "us_en" | "us_es" | "latam_es" | null;
@@ -588,7 +575,7 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       // Map UI filter names to API filter names
-      const apiFilter = filter === "starred" ? "targeted" : filter;
+      const apiFilter = filter === "starred" ? "targeted" : filter === "today" ? "today" : filter;
       const params = new URLSearchParams();
       if (filter !== "all") params.set("filter", apiFilter);
       params.set("coppa_flag", coppaMode);
@@ -665,6 +652,7 @@ export default function DashboardPage() {
     { labelKey: "filter.all", value: "all" },
     { labelKey: "filter.starred", value: "starred" },
     { labelKey: "filter.pending", value: "pending" },
+    { labelKey: "filter.today", value: "today" },
   ];
 
   return (
@@ -679,6 +667,13 @@ export default function DashboardPage() {
           <ThemeToggle theme={theme} onChange={handleThemeChange} />
         </div>
         <div className="flex items-center gap-4">
+          <a
+            href="/analyze"
+            className="text-sm transition-colors"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            {t("nav.analyze")}
+          </a>
           <QuotaGauge logs={logs} />
           <button
             onClick={async () => {
@@ -867,8 +862,8 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-                <table className="w-full text-sm">
+              <div className="rounded-lg overflow-x-auto" style={{ border: "1px solid var(--border)" }}>
+                <table className="w-full text-sm" style={{ minWidth: 1100 }}>
                   <thead>
                     <tr className="text-xs" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)", background: "var(--table-header-bg)" }}>
                       <th className="w-8 py-2.5 px-2"></th>

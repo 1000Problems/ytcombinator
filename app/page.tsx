@@ -113,6 +113,13 @@ export default function Home() {
             {t("nav.dashboard")}
           </a>
           <a
+            href="/analyze"
+            className="text-sm transition-colors"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            {t("nav.analyze")}
+          </a>
+          <a
             href="https://github.com/1000Problems/ytcombinator"
             target="_blank"
             rel="noopener noreferrer"

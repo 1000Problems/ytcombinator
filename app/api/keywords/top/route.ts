@@ -165,38 +165,39 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await query<RawKeywordMetrics>(
-      `WITH latest_snapshot AS (
-        SELECT COALESCE(MAX(snapshot_date), CURRENT_DATE) AS snap_date
+      `WITH per_keyword_latest AS (
+        SELECT keyword_id, MAX(snapshot_date) AS snap_date
         FROM keyword_rankings
+        GROUP BY keyword_id
       ),
       your_rank AS (
-        SELECT DISTINCT ON (keyword_id)
-          keyword_id, rank_position
-        FROM keyword_rankings, latest_snapshot
-        WHERE channel_id = $1
-          AND snapshot_date = latest_snapshot.snap_date
-        ORDER BY keyword_id, rank_position ASC
+        SELECT DISTINCT ON (kr.keyword_id)
+          kr.keyword_id, kr.rank_position
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+        WHERE kr.channel_id = $1
+        ORDER BY kr.keyword_id, kr.rank_position ASC
       ),
       your_rank_7d AS (
-        SELECT DISTINCT ON (keyword_id)
-          keyword_id, rank_position
-        FROM keyword_rankings, latest_snapshot
-        WHERE channel_id = $1
-          AND snapshot_date = latest_snapshot.snap_date - INTERVAL '7 days'
-        ORDER BY keyword_id, rank_position ASC
+        SELECT DISTINCT ON (kr.keyword_id)
+          kr.keyword_id, kr.rank_position
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date - INTERVAL '7 days'
+        WHERE kr.channel_id = $1
+        ORDER BY kr.keyword_id, kr.rank_position ASC
       ),
       serp_stats AS (
         SELECT
-          keyword_id,
-          AVG(view_count)::bigint AS avg_views,
-          COUNT(DISTINCT channel_id) AS unique_channels,
+          kr.keyword_id,
+          AVG(kr.view_count)::bigint AS avg_views,
+          COUNT(DISTINCT kr.channel_id) AS unique_channels,
           COUNT(*) AS total_results,
-          AVG(EXTRACT(EPOCH FROM (NOW() - published_at)) / 86400)::int AS avg_video_age_days,
-          MIN(EXTRACT(EPOCH FROM (NOW() - published_at)) / 86400)::int AS newest_video_age_days
-        FROM keyword_rankings, latest_snapshot
-        WHERE snapshot_date = latest_snapshot.snap_date
-          AND published_at IS NOT NULL
-        GROUP BY keyword_id
+          AVG(EXTRACT(EPOCH FROM (NOW() - kr.published_at)) / 86400)::int AS avg_video_age_days,
+          MIN(EXTRACT(EPOCH FROM (NOW() - kr.published_at)) / 86400)::int AS newest_video_age_days
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+        WHERE kr.published_at IS NOT NULL
+        GROUP BY kr.keyword_id
       )
       SELECT
         k.id,

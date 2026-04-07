@@ -46,49 +46,50 @@ export async function GET(request: NextRequest) {
     // Single CTE query: keywords + latest ranking count + your rank + 7d ago rank
     // Uses latest available snapshot_date instead of CURRENT_DATE to survive UTC midnight rollover
     const rows = await query<KeywordWithRank>(
-      `WITH latest_snapshot AS (
-        SELECT COALESCE(MAX(snapshot_date), CURRENT_DATE) AS snap_date
+      `WITH per_keyword_latest AS (
+        SELECT keyword_id, MAX(snapshot_date) AS snap_date
         FROM keyword_rankings
-      ),
-      latest_counts AS (
-        SELECT keyword_id, COUNT(*) AS results_count
-        FROM keyword_rankings, latest_snapshot
-        WHERE snapshot_date = latest_snapshot.snap_date
         GROUP BY keyword_id
       ),
+      latest_counts AS (
+        SELECT kr.keyword_id, COUNT(*) AS results_count
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+        GROUP BY kr.keyword_id
+      ),
       your_rank AS (
-        SELECT DISTINCT ON (keyword_id)
-          keyword_id, rank_position
-        FROM keyword_rankings, latest_snapshot
-        WHERE channel_id = $1
-          AND snapshot_date = latest_snapshot.snap_date
-        ORDER BY keyword_id, rank_position ASC
+        SELECT DISTINCT ON (kr.keyword_id)
+          kr.keyword_id, kr.rank_position
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+        WHERE kr.channel_id = $1
+        ORDER BY kr.keyword_id, kr.rank_position ASC
       ),
       your_rank_7d AS (
-        SELECT DISTINCT ON (keyword_id)
-          keyword_id, rank_position
-        FROM keyword_rankings, latest_snapshot
-        WHERE channel_id = $1
-          AND snapshot_date = latest_snapshot.snap_date - INTERVAL '7 days'
-        ORDER BY keyword_id, rank_position ASC
+        SELECT DISTINCT ON (kr.keyword_id)
+          kr.keyword_id, kr.rank_position
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date - INTERVAL '7 days'
+        WHERE kr.channel_id = $1
+        ORDER BY kr.keyword_id, kr.rank_position ASC
       ),
       top5_views AS (
         SELECT keyword_id, SUM(view_count)::bigint AS top5_views_sum
         FROM (
-          SELECT keyword_id, view_count,
-            ROW_NUMBER() OVER (PARTITION BY keyword_id ORDER BY rank_position ASC) AS rn
-          FROM keyword_rankings, latest_snapshot
-          WHERE snapshot_date = latest_snapshot.snap_date
-            AND view_count IS NOT NULL
+          SELECT kr.keyword_id, kr.view_count,
+            ROW_NUMBER() OVER (PARTITION BY kr.keyword_id ORDER BY kr.rank_position ASC) AS rn
+          FROM keyword_rankings kr
+          JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+          WHERE kr.view_count IS NOT NULL
         ) ranked
         WHERE rn <= 5
         GROUP BY keyword_id
       ),
       unique_channels AS (
-        SELECT keyword_id, COUNT(DISTINCT channel_id) AS unique_channel_count
-        FROM keyword_rankings, latest_snapshot
-        WHERE snapshot_date = latest_snapshot.snap_date
-        GROUP BY keyword_id
+        SELECT kr.keyword_id, COUNT(DISTINCT kr.channel_id) AS unique_channel_count
+        FROM keyword_rankings kr
+        JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+        GROUP BY kr.keyword_id
       )
       SELECT
         k.id, k.keyword, k.category, COALESCE(k.tags, '{}') AS tags,
@@ -131,6 +132,7 @@ export async function GET(request: NextRequest) {
         ${filter === "active" ? "AND k.is_active = TRUE" : ""}
         ${filter === "inactive" ? "AND k.is_active = FALSE" : ""}
         ${filter === "pending" ? "AND k.last_queried IS NULL" : ""}
+        ${filter === "today" ? "AND k.added_at >= CURRENT_DATE" : ""}
         ${category ? `AND k.category = $${coppaOverride ? 4 : 3}` : ""}
       ORDER BY
         k.is_targeted DESC,
@@ -200,32 +202,36 @@ export async function POST(request: NextRequest) {
         if (collected) {
           try {
             const metrics = await queryOne<Record<string, unknown>>(
-              `WITH latest_snapshot AS (
-                SELECT COALESCE(MAX(snapshot_date), CURRENT_DATE) AS snap_date
+              `WITH per_keyword_latest AS (
+                SELECT keyword_id, MAX(snapshot_date) AS snap_date
                 FROM keyword_rankings WHERE keyword_id = $1
+                GROUP BY keyword_id
               ),
               latest_counts AS (
-                SELECT keyword_id, COUNT(*) AS results_count
-                FROM keyword_rankings, latest_snapshot
-                WHERE snapshot_date = latest_snapshot.snap_date AND keyword_id = $1
-                GROUP BY keyword_id
+                SELECT kr.keyword_id, COUNT(*) AS results_count
+                FROM keyword_rankings kr
+                JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+                WHERE kr.keyword_id = $1
+                GROUP BY kr.keyword_id
               ),
               top5_views AS (
                 SELECT keyword_id, SUM(view_count)::bigint AS top5_views_sum
                 FROM (
-                  SELECT keyword_id, view_count,
-                    ROW_NUMBER() OVER (PARTITION BY keyword_id ORDER BY rank_position ASC) AS rn
-                  FROM keyword_rankings, latest_snapshot
-                  WHERE snapshot_date = latest_snapshot.snap_date AND keyword_id = $1
+                  SELECT kr.keyword_id, kr.view_count,
+                    ROW_NUMBER() OVER (PARTITION BY kr.keyword_id ORDER BY kr.rank_position ASC) AS rn
+                  FROM keyword_rankings kr
+                  JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+                  WHERE kr.keyword_id = $1
                 ) ranked
                 WHERE rn <= 5
                 GROUP BY keyword_id
               ),
               unique_channels AS (
-                SELECT keyword_id, COUNT(DISTINCT channel_id) AS unique_channel_count
-                FROM keyword_rankings, latest_snapshot
-                WHERE snapshot_date = latest_snapshot.snap_date AND keyword_id = $1
-                GROUP BY keyword_id
+                SELECT kr.keyword_id, COUNT(DISTINCT kr.channel_id) AS unique_channel_count
+                FROM keyword_rankings kr
+                JOIN per_keyword_latest pkl ON pkl.keyword_id = kr.keyword_id AND kr.snapshot_date = pkl.snap_date
+                WHERE kr.keyword_id = $1
+                GROUP BY kr.keyword_id
               )
               SELECT
                 k.id, k.keyword, k.category, COALESCE(k.tags, '{}') AS tags,

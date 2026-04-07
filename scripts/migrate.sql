@@ -71,3 +71,47 @@ CREATE TABLE IF NOT EXISTS collection_log (
   errors          TEXT[],
   duration_ms     INT
 );
+
+-- Analyzed videos (video analyzer feature)
+CREATE TABLE IF NOT EXISTS analyzed_videos (
+  id              SERIAL PRIMARY KEY,
+  video_id        VARCHAR(64) NOT NULL UNIQUE,
+  channel_id      VARCHAR(64) NOT NULL,
+  channel_name    VARCHAR(255),
+  channel_subs    BIGINT,
+  channel_views   BIGINT,
+  channel_videos  INT,
+  video_title     VARCHAR(500),
+  video_description TEXT,
+  video_tags      TEXT[],
+  video_category  VARCHAR(100),
+  youtube_category_id INT,
+  duration_seconds INT,
+  published_at    TIMESTAMPTZ,
+  view_count      BIGINT,
+  like_count      BIGINT,
+  comment_count   BIGINT,
+  thumbnail_url   VARCHAR(1000),
+  -- Computed metrics (calculated at analysis time)
+  engagement_rate   DECIMAL(8,4),     -- (likes + comments) / views * 100
+  views_per_day     DECIMAL(12,2),    -- views / days since publish
+  est_monthly_views BIGINT,           -- views_per_day * 30
+  outlier_score     DECIMAL(8,2),     -- view_count / (channel_views / channel_videos)
+  seo_score         INT,              -- 0-100
+  -- Revenue estimates (using category_cpm at analysis time)
+  revenue_region    VARCHAR(20) DEFAULT 'us_en',
+  revenue_coppa     VARCHAR(20) DEFAULT 'made_for_kids',
+  revenue_est_low   DECIMAL(10,2),
+  revenue_est_mid   DECIMAL(10,2),
+  revenue_est_high  DECIMAL(10,2),
+  annual_est        DECIMAL(12,2),    -- revenue_est_mid * 12
+  -- Metadata
+  analyzed_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_analyzed_videos_channel
+  ON analyzed_videos(channel_id);
+
+CREATE INDEX IF NOT EXISTS idx_analyzed_videos_revenue
+  ON analyzed_videos(revenue_est_mid DESC NULLS LAST);

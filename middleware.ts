@@ -30,7 +30,7 @@ async function verifySession(cookie: string, secret: string): Promise<boolean> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (!pathname.startsWith("/dashboard")) {
+  if (!pathname.startsWith("/dashboard") && !pathname.startsWith("/analyze")) {
     return NextResponse.next();
   }
 
@@ -48,5 +48,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/analyze/:path*"],
 };

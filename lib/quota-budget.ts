@@ -16,6 +16,7 @@ export const QUOTA = {
   COLLECTOR_BUDGET: 5_250,
   MAX_KEYWORDS_PER_RUN: 50,
   SEARCH_MAX_RESULTS: 25,
+  ANALYZE_COST: 12, // videos.list(snippet+stats+contentDetails) + channels.list(snippet+stats)
 } as const;
 
 /**

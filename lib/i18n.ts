@@ -15,6 +15,7 @@ const strings: Record<string, Record<Locale, string>> = {
   "filter.all": { en: "All", es: "Todos" },
   "filter.starred": { en: "Starred", es: "Destacados" },
   "filter.pending": { en: "Pending", es: "Pendientes" },
+  "filter.today": { en: "Today", es: "Hoy" },
 
   // ── Sort ──
   "sort.label": { en: "Sort:", es: "Orden:" },
@@ -213,6 +214,40 @@ const strings: Record<string, Record<Locale, string>> = {
   "coppa.family": { en: "Family", es: "Familia" },
   "coppa.tooltip_kids": { en: "Made for Kids: lower CPM (COPPA restricted)", es: "Para Niños: CPM bajo (restricción COPPA)" },
   "coppa.tooltip_family": { en: "Family/General: full ad personalization", es: "Familia/General: personalización completa de anuncios" },
+
+  // ── Analyze page ──
+  "analyze.title":          { en: "Video Analyzer", es: "Analizador de Videos" },
+  "analyze.subtitle":       { en: "Paste a YouTube URL to get estimated stats", es: "Pega una URL de YouTube para obtener estadísticas estimadas" },
+  "analyze.input_placeholder": { en: "Paste a YouTube video URL...", es: "Pega una URL de video de YouTube..." },
+  "analyze.button":         { en: "Analyze", es: "Analizar" },
+  "analyze.analyzing":      { en: "Analyzing...", es: "Analizando..." },
+  "analyze.error_invalid":  { en: "Could not parse a video ID from that URL", es: "No se pudo obtener un ID de video de esa URL" },
+  "analyze.error_not_found": { en: "Video not found on YouTube", es: "Video no encontrado en YouTube" },
+  "analyze.history_title":  { en: "Analyzed Videos", es: "Videos Analizados" },
+  "analyze.no_history":     { en: "No videos analyzed yet", es: "No hay videos analizados aún" },
+  "analyze.delete_confirm": { en: "Remove this video from history?", es: "¿Eliminar este video del historial?" },
+
+  "metric.est_monthly":     { en: "Est. Monthly Revenue", es: "Ingresos Mensuales Est." },
+  "metric.annual":          { en: "Annual Projection", es: "Proyección Anual" },
+  "metric.views_per_day":   { en: "Views / Day", es: "Vistas / Día" },
+  "metric.outlier":         { en: "Outlier Score", es: "Puntaje Outlier" },
+  "metric.engagement":      { en: "Engagement", es: "Engagement" },
+  "metric.seo_score":       { en: "SEO Score", es: "Puntaje SEO" },
+  "metric.total_views":     { en: "Total Views", es: "Vistas Totales" },
+  "metric.likes_comments":  { en: "Likes / Comments", es: "Likes / Comentarios" },
+
+  "th.thumbnail":           { en: "", es: "" },
+  "th.title":               { en: "Title", es: "Título" },
+  "th.channel":             { en: "Channel", es: "Canal" },
+  "th.views":               { en: "Views", es: "Vistas" },
+  "th.est_monthly":         { en: "Est. Monthly ($)", es: "Est. Mensual ($)" },
+  "th.annual_est":          { en: "Annual ($)", es: "Anual ($)" },
+  "th.outlier":             { en: "Outlier", es: "Outlier" },
+  "th.seo":                 { en: "SEO", es: "SEO" },
+  "th.engagement":          { en: "Engage %", es: "Engage %" },
+  "th.analyzed":            { en: "Analyzed", es: "Analizado" },
+
+  "nav.analyze":            { en: "Analyze", es: "Analizar" },
 
   // ── Portfolio valuation ──
   "valuation.annual_revenue": { en: "Est. Annual Revenue", es: "Ingresos Anuales Est." },
