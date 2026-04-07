@@ -1,0 +1,41 @@
+name: Sync YouTube API Key to Vercel
+
+# One-shot workflow: copies YOUTUBE_API_KEY from GitHub secrets to Vercel env vars.
+# Trigger manually, then delete this workflow after it runs.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add YOUTUBE_API_KEY to Vercel
+        run: |
+          # Check if it already exists
+          EXISTING=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID" \
+            | jq -r '.envs[] | select(.key == "YOUTUBE_API_KEY") | .id')
+
+          if [ -n "$EXISTING" ]; then
+            echo "YOUTUBE_API_KEY already exists (id: $EXISTING), updating..."
+            curl -s -X PATCH \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"value\": \"$YOUTUBE_API_KEY\"}" \
+              "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTING?teamId=$TEAM_ID"
+          else
+            echo "Creating YOUTUBE_API_KEY on Vercel..."
+            curl -s -X POST \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\": \"YOUTUBE_API_KEY\", \"value\": \"$YOUTUBE_API_KEY\", \"type\": \"encrypted\", \"target\": [\"production\", \"preview\", \"development\"]}" \
+              "https://api.vercel.com/v10/projects/$PROJECT_ID/env?teamId=$TEAM_ID"
+          fi
+
+          echo "Done. Trigger a redeploy for the new env var to take effect."
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROJECT_ID: prj_kUEhjr9dBeQTJ1DiG06EB5aJRouh
+          TEAM_ID: team_JKAdqVUltYyO4iDkdIpuO08k
