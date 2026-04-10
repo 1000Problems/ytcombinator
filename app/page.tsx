@@ -79,7 +79,7 @@ export default function Home() {
               </linearGradient>
             </defs>
           </svg>
-          <span className="text-xl font-bold tracking-tight">YTCombinator</span>
+          <span className="text-xl font-bold tracking-tight font-display">YTCombinator</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-xs">
@@ -132,8 +132,8 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-col items-center text-center px-6 pt-20 pb-16 max-w-4xl mx-auto">
-        <div className="mb-8">
+      <section className="flex flex-col items-center text-center px-6 pt-20 pb-16 max-w-4xl mx-auto animate-page-enter">
+        <div className="mb-8 animate-slide-up">
           <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
             <rect width="80" height="80" rx="20" fill="url(#hero-grad)" />
             <path d="M26 28l14 12-14 12V28z" fill="#fff" />
@@ -149,19 +149,19 @@ export default function Home() {
             </defs>
           </svg>
         </div>
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 font-display animate-slide-up-delay-1">
           {t("landing.hero_title_1")}{" "}
           <span className="bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
             {t("landing.hero_title_2")}
           </span>
         </h1>
-        <p className="text-lg md:text-xl max-w-2xl mb-10 leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
+        <p className="text-lg md:text-xl max-w-2xl mb-10 leading-relaxed animate-slide-up-delay-2" style={{ color: "var(--text-tertiary)" }}>
           {t("landing.hero_sub")}
         </p>
-        <div className="flex gap-4">
+        <div className="flex gap-4 animate-slide-up-delay-3">
           <a
             href="#features"
-            className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold btn-primary"
           >
             {t("landing.cta_features")}
           </a>
@@ -169,14 +169,14 @@ export default function Home() {
             href="https://github.com/1000Problems/ytcombinator"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-6 py-3 rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 rounded-lg font-semibold btn-secondary"
             style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             {t("landing.cta_source")}
           </a>
           <a
             href="/dashboard"
-            className="px-6 py-3 rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 rounded-lg font-semibold btn-secondary"
             style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             {t("landing.cta_dashboard")}
@@ -185,11 +185,11 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-16">
+      <section id="features" className="max-w-6xl mx-auto px-6 py-20">
         <div className="grid md:grid-cols-3 gap-8">
           {/* Card 1 */}
           <div
-            className="backdrop-blur rounded-2xl p-8 hover:border-red-500/40 transition-colors"
+            className="backdrop-blur rounded-2xl p-8 hover:border-red-500/40 card-elevated animate-slide-up-delay-1"
             style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
           >
             <div className="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center mb-5">
@@ -200,7 +200,7 @@ export default function Home() {
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-3">{t("landing.card1_title")}</h3>
+            <h3 className="text-xl font-bold mb-3 font-display">{t("landing.card1_title")}</h3>
             <p style={{ color: "var(--text-tertiary)" }} className="leading-relaxed">
               {t("landing.card1_desc")}
             </p>
@@ -208,7 +208,7 @@ export default function Home() {
 
           {/* Card 2 */}
           <div
-            className="backdrop-blur rounded-2xl p-8 hover:border-orange-500/40 transition-colors"
+            className="backdrop-blur rounded-2xl p-8 hover:border-orange-500/40 card-elevated animate-slide-up-delay-2"
             style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
           >
             <div className="w-12 h-12 bg-orange-600/20 rounded-xl flex items-center justify-center mb-5">
@@ -216,7 +216,7 @@ export default function Home() {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-3">{t("landing.card2_title")}</h3>
+            <h3 className="text-xl font-bold mb-3 font-display">{t("landing.card2_title")}</h3>
             <p style={{ color: "var(--text-tertiary)" }} className="leading-relaxed">
               {t("landing.card2_desc")}
             </p>
@@ -224,7 +224,7 @@ export default function Home() {
 
           {/* Card 3 */}
           <div
-            className="backdrop-blur rounded-2xl p-8 hover:border-yellow-500/40 transition-colors"
+            className="backdrop-blur rounded-2xl p-8 hover:border-yellow-500/40 card-elevated animate-slide-up-delay-3"
             style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
           >
             <div className="w-12 h-12 bg-yellow-600/20 rounded-xl flex items-center justify-center mb-5">
@@ -232,7 +232,7 @@ export default function Home() {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-3">{t("landing.card3_title")}</h3>
+            <h3 className="text-xl font-bold mb-3 font-display">{t("landing.card3_title")}</h3>
             <p style={{ color: "var(--text-tertiary)" }} className="leading-relaxed">
               {t("landing.card3_desc")}
             </p>
@@ -241,7 +241,7 @@ export default function Home() {
       </section>
 
       {/* Tech badges */}
-      <section className="max-w-6xl mx-auto px-6 py-12">
+      <section className="max-w-6xl mx-auto px-6 py-16 animate-slide-up-delay-4">
         <div className="flex flex-wrap items-center justify-center gap-3">
           {["Next.js", "TypeScript", "Tailwind CSS", "Neon PostgreSQL", "Vercel", "YouTube API"].map((tech) => (
             <span
@@ -260,7 +260,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>
+      <footer className="text-center py-12 text-sm" style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border-subtle)" }}>
         A{" "}
         <a
           href="https://www.1000problems.com"

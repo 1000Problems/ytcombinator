@@ -137,7 +137,7 @@ function VideoCard({ video, t }: { video: AnalyzedVideo; t: (k: string) => strin
 
   return (
     <div
-      className="rounded-lg p-6 mb-6"
+      className="rounded-lg p-6 mb-6 card-elevated-lg animate-slide-up"
       style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
     >
       <div className="flex gap-6 flex-col md:flex-row">
@@ -157,7 +157,7 @@ function VideoCard({ video, t }: { video: AnalyzedVideo; t: (k: string) => strin
             </a>
           )}
           <h3
-            className="font-bold text-base mb-1 line-clamp-2"
+            className="font-bold text-base mb-1 line-clamp-2 font-display"
             style={{ color: "var(--text-primary)" }}
           >
             {video.video_title ?? video.video_id}
@@ -388,9 +388,9 @@ export default function AnalyzePage() {
   return (
     <div className="min-h-screen transition-colors" style={{ background: "var(--page-bg)", color: "var(--text-primary)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid var(--nav-border)" }}>
+      <nav className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid var(--nav-border)", boxShadow: "var(--nav-shadow)" }}>
         <div className="flex items-center gap-4">
-          <a href="/" className="text-lg font-semibold tracking-tight">
+          <a href="/" className="text-lg font-semibold tracking-tight font-display">
             <span className="text-red-500">YT</span>Combinator
           </a>
           <LanguageToggle locale={locale} onChange={handleLocaleChange} />
@@ -417,10 +417,10 @@ export default function AnalyzePage() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-8 py-6">
+      <main className="max-w-6xl mx-auto px-8 py-6 animate-page-enter">
         {/* Header */}
         <div className="mb-4">
-          <h1 className="text-xl font-medium" style={{ color: "var(--text-secondary)" }}>{t("analyze.title")}</h1>
+          <h1 className="text-xl font-semibold font-display" style={{ color: "var(--text-primary)" }}>{t("analyze.title")}</h1>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>{t("analyze.subtitle")}</p>
         </div>
 
@@ -440,7 +440,7 @@ export default function AnalyzePage() {
             <button
               type="submit"
               disabled={analyzing || !url.trim()}
-              className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-5 py-2 rounded-lg transition-colors min-w-[120px]"
+              className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-5 py-2 rounded-lg btn-primary min-w-[120px]"
             >
               {analyzing ? t("analyze.analyzing") : t("analyze.button")}
             </button>
@@ -492,7 +492,7 @@ export default function AnalyzePage() {
                 onClick={() => {
                   window.scrollTo({ top: scrollBeforeSelectRef.current, behavior: "smooth" });
                 }}
-                className="flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-full transition-colors"
+                className="flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-full btn-secondary"
                 style={{ background: "var(--input-bg)", border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
                 title="Back to list"
               >
@@ -508,7 +508,7 @@ export default function AnalyzePage() {
         {/* History Table */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-            <h2 className="text-lg font-medium" style={{ color: "var(--text-secondary)" }}>
+            <h2 className="text-lg font-semibold font-display" style={{ color: "var(--text-primary)" }}>
               {t("analyze.history_title")}
             </h2>
             <div className="relative">
@@ -541,7 +541,7 @@ export default function AnalyzePage() {
           {historyLoading && (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-10 rounded-lg animate-pulse" style={{ background: "var(--skeleton)" }} />
+                <div key={i} className="h-10 rounded-lg skeleton-shimmer" />
               ))}
             </div>
           )}
@@ -559,7 +559,7 @@ export default function AnalyzePage() {
                 )
               : history;
             return (
-            <div className="rounded-lg overflow-x-auto" style={{ border: "1px solid var(--border)" }}>
+            <div className="rounded-lg overflow-x-auto card-elevated" style={{ border: "1px solid var(--border)" }}>
               {filteredHistory.length === 0 ? (
                 <p className="text-sm py-8 text-center" style={{ color: "var(--text-muted)" }}>
                   No videos match &ldquo;{searchQuery}&rdquo;

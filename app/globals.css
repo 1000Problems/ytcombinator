@@ -41,6 +41,13 @@
   --active-toggle-bg: #e3dfd8;
   --active-toggle-text: #1a1614;
   --filter-active-bg: #edeae4;
+  --shadow-card: 0 1px 3px rgba(26, 22, 20, 0.04), 0 4px 12px rgba(26, 22, 20, 0.06);
+  --shadow-card-hover: 0 2px 8px rgba(26, 22, 20, 0.06), 0 8px 24px rgba(26, 22, 20, 0.10);
+  --shadow-card-lg: 0 4px 12px rgba(26, 22, 20, 0.06), 0 12px 40px rgba(26, 22, 20, 0.12);
+  --shadow-button: 0 1px 2px rgba(26, 22, 20, 0.08), 0 2px 8px rgba(239, 68, 68, 0.10);
+  --shadow-button-hover: 0 2px 6px rgba(26, 22, 20, 0.10), 0 6px 20px rgba(239, 68, 68, 0.18);
+  --shadow-input-focus: 0 0 0 3px rgba(239, 68, 68, 0.08);
+  --nav-shadow: 0 1px 0 var(--nav-border), 0 1px 6px rgba(26, 22, 20, 0.03);
 }
 
 [data-theme="dark"] {
@@ -81,6 +88,13 @@
   --active-toggle-bg: #2f281f;
   --active-toggle-text: #f2ede8;
   --filter-active-bg: #252018;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.20), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-card-lg: 0 4px 12px rgba(0, 0, 0, 0.25), 0 12px 40px rgba(0, 0, 0, 0.40);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(239, 68, 68, 0.15);
+  --shadow-button-hover: 0 2px 6px rgba(0, 0, 0, 0.30), 0 6px 20px rgba(239, 68, 68, 0.25);
+  --shadow-input-focus: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  --nav-shadow: 0 1px 0 var(--nav-border), 0 1px 8px rgba(0, 0, 0, 0.15);
 }
 
 @theme inline {
@@ -166,4 +180,168 @@ body::after {
 ::selection {
   background: rgba(239, 68, 68, 0.18);
   color: var(--text-primary);
+}
+
+/* ── Animations ─────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+/* ── Display typography ─────────────────────────────────────────── */
+
+.font-display {
+  font-family: var(--font-display), 'Syne', sans-serif;
+  letter-spacing: -0.025em;
+}
+
+/* ── Card depth system ──────────────────────────────────────────── */
+
+.card-elevated {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+
+.card-elevated:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.card-elevated-lg {
+  box-shadow: var(--shadow-card-lg);
+}
+
+/* ── Button enhancements ────────────────────────────────────────── */
+
+.btn-primary {
+  box-shadow: var(--shadow-button);
+  transition: background-color 0.2s, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary {
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.btn-secondary:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+/* ── Input refinements ──────────────────────────────────────────── */
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus {
+  box-shadow: var(--shadow-input-focus);
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* ── Table refinements ──────────────────────────────────────────── */
+
+table thead th {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+table tbody tr:hover {
+  background-color: var(--table-row-hover) !important;
+}
+
+/* ── Nav refinement ─────────────────────────────────────────────── */
+
+nav {
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Page entrance animations ───────────────────────────────────── */
+
+.animate-page-enter {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.45s ease-out both;
+}
+
+.animate-slide-up-delay-1 {
+  animation: slideUp 0.45s ease-out 0.08s both;
+}
+
+.animate-slide-up-delay-2 {
+  animation: slideUp 0.45s ease-out 0.16s both;
+}
+
+.animate-slide-up-delay-3 {
+  animation: slideUp 0.45s ease-out 0.24s both;
+}
+
+.animate-slide-up-delay-4 {
+  animation: slideUp 0.45s ease-out 0.32s both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out both;
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────────── */
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--skeleton) 25%, var(--surface) 50%, var(--skeleton) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ── Accent decorations ─────────────────────────────────────────── */
+
+.accent-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.accent-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
+  border-radius: 1px;
+  opacity: 0.7;
 }

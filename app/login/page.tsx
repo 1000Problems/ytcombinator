@@ -106,7 +106,7 @@ export default function LoginPage() {
               </linearGradient>
             </defs>
           </svg>
-          <span className="text-xl font-bold tracking-tight">YTCombinator</span>
+          <span className="text-xl font-bold tracking-tight font-display">YTCombinator</span>
         </a>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-xs">
@@ -137,8 +137,11 @@ export default function LoginPage() {
 
       {/* Login form */}
       <div className="flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-sm">
-          <h1 className="text-3xl font-bold text-center mb-2">{t("login.title")}</h1>
+        <div className="w-full max-w-sm rounded-2xl p-8 card-elevated-lg animate-scale-in" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+          <div className="flex justify-center mb-5">
+            <div style={{ width: 48, height: 3, borderRadius: 2, background: 'linear-gradient(90deg, #ef4444, #f97316, #eab308)' }} />
+          </div>
+          <h1 className="text-3xl font-bold text-center mb-2 font-display">{t("login.title")}</h1>
           <p className="text-center text-sm mb-8" style={{ color: "var(--text-tertiary)" }}>{t("login.subtitle")}</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -161,7 +164,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || !password}
-              className="w-full px-4 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+              className="w-full px-4 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold btn-primary"
             >
               {loading ? "..." : t("login.button")}
             </button>

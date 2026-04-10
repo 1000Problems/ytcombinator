@@ -378,7 +378,7 @@ function ResearchBar({
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors min-w-[120px]"
+          className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg btn-primary min-w-[120px]"
         >
           {loading ? t("research.collecting") : t("research.button")}
         </button>
@@ -390,7 +390,7 @@ function ResearchBar({
 
       {/* Preview card */}
       {preview && (
-        <div className="mt-3 rounded-lg px-4 py-3 flex items-center gap-4 text-sm animate-in fade-in" style={{ background: "var(--card-bg-subtle)", border: "1px solid var(--border-subtle)" }}>
+        <div className="mt-3 rounded-lg px-4 py-3 flex items-center gap-4 text-sm card-elevated animate-slide-up" style={{ background: "var(--card-bg-subtle)", border: "1px solid var(--border-subtle)" }}>
           <span className="font-medium" style={{ color: "var(--text-primary)" }}>{preview.keyword}</span>
           <span className={`tabular-nums font-semibold ${dsColor(preview.demand_supply)}`}>
             {t("th.demand_supply")} {formatNumber(preview.demand_supply)}
@@ -641,9 +641,9 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen transition-colors" style={{ background: "var(--page-bg)", color: "var(--text-primary)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid var(--nav-border)" }}>
+      <nav className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid var(--nav-border)", boxShadow: "var(--nav-shadow)" }}>
         <div className="flex items-center gap-4">
-          <a href="/" className="text-lg font-semibold tracking-tight">
+          <a href="/" className="text-lg font-semibold tracking-tight font-display">
             <span className="text-red-500">YT</span>Combinator
           </a>
           <LanguageToggle locale={locale} onChange={handleLocaleChange} />
@@ -671,10 +671,10 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-8 py-6">
+      <main className="max-w-6xl mx-auto px-8 py-6 animate-page-enter">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-medium" style={{ color: "var(--text-secondary)" }}>{t("dash.title")}</h1>
+          <h1 className="text-xl font-semibold font-display" style={{ color: "var(--text-primary)" }}>{t("dash.title")}</h1>
           <span className="text-sm" style={{ color: "var(--text-muted)" }}>{keywords.length} {t("dash.keyword_count")}</span>
         </div>
 
@@ -766,7 +766,7 @@ export default function DashboardPage() {
             <button
               onClick={handleCollectAll}
               disabled={collecting}
-              className="px-3 py-1 text-sm rounded-lg disabled:opacity-50 transition-colors"
+              className="px-3 py-1 text-sm rounded-lg disabled:opacity-50 btn-secondary"
               style={{ background: "var(--input-bg)", border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
             >
               {collecting ? t("collect.running") : t("collect.button")}
@@ -791,7 +791,7 @@ export default function DashboardPage() {
         {loading && (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 rounded-lg animate-pulse" style={{ background: "var(--skeleton)" }} />
+              <div key={i} className="h-10 rounded-lg skeleton-shimmer" />
             ))}
           </div>
         )}
@@ -803,7 +803,7 @@ export default function DashboardPage() {
             .reduce((sum, kw) => sum + Number(kw.annual_value), 0);
           const portfolioValuation = portfolioAnnual * 2.5;
           return (
-            <div className="rounded-lg px-5 py-4 mb-4 flex items-center gap-6 text-sm" style={{ background: "var(--card-bg-subtle)", border: "1px solid var(--border-subtle)" }}>
+            <div className="rounded-lg px-5 py-4 mb-4 flex items-center gap-6 text-sm card-elevated" style={{ background: "var(--card-bg-subtle)", border: "1px solid var(--border-subtle)" }}>
               <div>
                 <span style={{ color: "var(--text-muted)" }}>{t("valuation.annual_revenue")}</span>
                 <span className="ml-2 font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{formatCurrency(portfolioAnnual)}</span>
@@ -829,7 +829,7 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg overflow-x-auto" style={{ border: "1px solid var(--border)" }}>
+              <div className="rounded-lg overflow-x-auto card-elevated" style={{ border: "1px solid var(--border)" }}>
                 <table className="w-full text-sm" style={{ minWidth: 1100 }}>
                   <thead>
                     <tr className="text-xs" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)", background: "var(--table-header-bg)" }}>
@@ -971,14 +971,14 @@ export default function DashboardPage() {
 
         {/* Collection Log */}
         <div className="mt-12">
-          <h2 className="text-lg font-medium mb-4" style={{ color: "var(--text-secondary)" }}>{t("log.title")}</h2>
-          <div className="rounded-lg overflow-hidden px-4" style={{ border: "1px solid var(--border)" }}>
+          <h2 className="text-lg font-semibold mb-4 font-display" style={{ color: "var(--text-primary)" }}>{t("log.title")}</h2>
+          <div className="rounded-lg overflow-hidden px-4 card-elevated" style={{ border: "1px solid var(--border)" }}>
             <CollectionLog logs={logs} t={t} />
           </div>
 
           {/* ── Formula Explanations ── */}
-          <div className="rounded-xl p-6 mt-6" style={{ background: "var(--formula-bg)", border: "1px solid var(--formula-border)" }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+          <div className="rounded-xl p-6 mt-6 card-elevated" style={{ background: "var(--formula-bg)", border: "1px solid var(--formula-border)" }}>
+            <h2 className="text-lg font-semibold mb-4 font-display" style={{ color: "var(--text-primary)" }}>
               {t("formula.title")}
             </h2>
             <div className="space-y-5 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
