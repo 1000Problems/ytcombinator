@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createT, getSavedLocale, saveLocale, Locale } from "@/lib/i18n";
 import { getSavedTheme, saveTheme, applyTheme, Theme } from "@/lib/theme";
 import { formatCurrency, formatNumber } from "@/lib/format";
@@ -41,7 +41,7 @@ interface AnalyzedVideo {
   updated_at: string | null;
 }
 
-type SortKey = "revenue_est_mid" | "view_count" | "outlier_score" | "seo_score" | "engagement_rate" | "analyzed_at";
+type SortKey = "revenue_est_mid" | "view_count" | "outlier_score" | "seo_score" | "engagement_rate" | "analyzed_at" | "video_title" | "channel_name" | "annual_est";
 type SortDir = "asc" | "desc";
 
 // ---- Helpers --------------------------------------------------------
@@ -285,6 +285,8 @@ export default function AnalyzePage() {
   const [history, setHistory] = useState<AnalyzedVideo[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "revenue_est_mid", dir: "desc" });
+  const [searchQuery, setSearchQuery] = useState("");
+  const scrollBeforeSelectRef = useRef<number>(0);
 
   useEffect(() => {
     setLocale(getSavedLocale());
@@ -482,13 +484,59 @@ export default function AnalyzePage() {
         </form>
 
         {/* Video Detail Card */}
-        {selectedVideo && <VideoCard video={selectedVideo} t={t} />}
+        {selectedVideo && (
+          <>
+            <VideoCard video={selectedVideo} t={t} />
+            <div className="flex justify-center mb-4 -mt-2">
+              <button
+                onClick={() => {
+                  window.scrollTo({ top: scrollBeforeSelectRef.current, behavior: "smooth" });
+                }}
+                className="flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-full transition-colors"
+                style={{ background: "var(--input-bg)", border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
+                title="Back to list"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                Back to list
+              </button>
+            </div>
+          </>
+        )}
 
         {/* History Table */}
         <div className="mb-4">
-          <h2 className="text-lg font-medium mb-3" style={{ color: "var(--text-secondary)" }}>
-            {t("analyze.history_title")}
-          </h2>
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <h2 className="text-lg font-medium" style={{ color: "var(--text-secondary)" }}>
+              {t("analyze.history_title")}
+            </h2>
+            <div className="relative">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title…"
+                className="rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:border-red-500/50 transition-colors"
+                style={{ background: "var(--input-bg)", border: "1px solid var(--border)", color: "var(--text-primary)", width: 220 }}
+              />
+            </div>
+          </div>
 
           {historyLoading && (
             <div className="space-y-2">
@@ -504,17 +552,28 @@ export default function AnalyzePage() {
             </p>
           )}
 
-          {!historyLoading && history.length > 0 && (
+          {!historyLoading && history.length > 0 && (() => {
+            const filteredHistory = searchQuery.trim()
+              ? history.filter((v) =>
+                  (v.video_title ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+                )
+              : history;
+            return (
             <div className="rounded-lg overflow-x-auto" style={{ border: "1px solid var(--border)" }}>
+              {filteredHistory.length === 0 ? (
+                <p className="text-sm py-8 text-center" style={{ color: "var(--text-muted)" }}>
+                  No videos match &ldquo;{searchQuery}&rdquo;
+                </p>
+              ) : (
               <table className="w-full text-sm" style={{ minWidth: 900 }}>
                 <thead>
                   <tr className="text-xs" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)", background: "var(--table-header-bg)" }}>
                     <th className="py-2.5 px-2 w-16">{t("th.thumbnail")}</th>
-                    <th className="text-left py-2.5 px-3">{t("th.title")}</th>
-                    <th className="text-left py-2.5 px-3">{t("th.channel")}</th>
+                    <th className="text-left py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("video_title")}>{t("th.title")}{sortIndicator("video_title")}</th>
+                    <th className="text-left py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("channel_name")}>{t("th.channel")}{sortIndicator("channel_name")}</th>
                     <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("view_count")}>{t("th.views")}{sortIndicator("view_count")}</th>
                     <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("revenue_est_mid")}>{t("th.est_monthly")}{sortIndicator("revenue_est_mid")}</th>
-                    <th className="text-right py-2.5 px-3">{t("th.annual_est")}</th>
+                    <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("annual_est")}>{t("th.annual_est")}{sortIndicator("annual_est")}</th>
                     <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("outlier_score")}>{t("th.outlier")}{sortIndicator("outlier_score")}</th>
                     <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("seo_score")}>{t("th.seo")}{sortIndicator("seo_score")}</th>
                     <th className="text-right py-2.5 px-3 cursor-pointer select-none hover:opacity-70 transition-opacity" onClick={() => toggleSort("engagement_rate")}>{t("th.engagement")}{sortIndicator("engagement_rate")}</th>
@@ -523,7 +582,7 @@ export default function AnalyzePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((v) => (
+                  {filteredHistory.map((v) => (
                     <tr
                       key={v.id}
                       className="cursor-pointer transition-colors"
@@ -531,7 +590,11 @@ export default function AnalyzePage() {
                         borderBottom: "1px solid var(--table-border)",
                         background: selectedVideo?.id === v.id ? "var(--table-row-hover)" : "transparent",
                       }}
-                      onClick={() => setSelectedVideo(v)}
+                      onClick={() => {
+                        scrollBeforeSelectRef.current = window.scrollY;
+                        setSelectedVideo(v);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
                     >
                       <td className="py-2 px-2">
                         {v.thumbnail_url ? (
@@ -585,8 +648,10 @@ export default function AnalyzePage() {
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
-          )}
+            );
+          })()}
         </div>
       </main>
     </div>

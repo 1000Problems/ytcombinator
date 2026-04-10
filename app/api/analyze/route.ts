@@ -244,6 +244,9 @@ const ALLOWED_SORT_COLUMNS = new Set([
   "seo_score",
   "engagement_rate",
   "analyzed_at",
+  "video_title",
+  "channel_name",
+  "annual_est",
 ]);
 
 export async function GET(req: NextRequest) {
