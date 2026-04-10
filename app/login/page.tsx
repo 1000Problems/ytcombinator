@@ -106,7 +106,7 @@ export default function LoginPage() {
               </linearGradient>
             </defs>
           </svg>
-          <span className="text-xl font-bold tracking-tight font-display">YTCombinator</span>
+          <span className="text-xl font-bold tracking-tight font-display"><span style={{ color: '#FF0000' }}>YT</span>Combinator</span>
         </a>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-xs">

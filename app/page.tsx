@@ -79,7 +79,7 @@ export default function Home() {
               </linearGradient>
             </defs>
           </svg>
-          <span className="text-xl font-bold tracking-tight font-display">YTCombinator</span>
+          <span className="text-xl font-bold tracking-tight font-display"><span style={{ color: '#FF0000' }}>YT</span>Combinator</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-xs">

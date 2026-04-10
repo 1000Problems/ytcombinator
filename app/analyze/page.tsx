@@ -391,7 +391,7 @@ export default function AnalyzePage() {
       <nav className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid var(--nav-border)", boxShadow: "var(--nav-shadow)" }}>
         <div className="flex items-center gap-4">
           <a href="/" className="text-lg font-semibold tracking-tight font-display">
-            <span className="text-red-500">YT</span>Combinator
+            <span style={{ color: '#FF0000' }}>YT</span>Combinator
           </a>
           <LanguageToggle locale={locale} onChange={handleLocaleChange} />
           <ThemeToggle theme={theme} onChange={handleThemeChange} />
