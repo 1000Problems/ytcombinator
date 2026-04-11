@@ -73,7 +73,7 @@ Files outside TASK scope: NONE | (list + justification)
 Overkill for our portfolio — most tasks are UI, API routes, and Swift views. The build itself is our primary test. Would reconsider for library-level code.
 
 ### Git Worktree Isolation
-Unnecessary. Angel handles git manually. Code doesn't push.
+Unnecessary at our scale. Code commits and pushes directly after reviewing against CLAUDE.md guidelines.
 
 ### Subagent Dispatching
 vybeforever already orchestrates per-project. Adding subagent coordination would increase complexity without clear benefit at our scale.

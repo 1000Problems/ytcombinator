@@ -44,6 +44,6 @@ YouTube channel automation suite — scheduling, analytics, content optimization
 
 ## What NOT to Do
 
-- Do NOT commit or push — Angel handles git
+- After completing work, review changes against these guidelines, then commit and push. Report any push failures.
 
 For implementation details (schema, API endpoints, auth model, state machines), see BUILD.md.
